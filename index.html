@@ -495,6 +495,14 @@
   ];
 
   const BGM_BASS = [130.81, 146.83, 164.81, 196.0];
+  // アラビア風BGM（ステージ3用：フリジアン・ドミナント音階）
+  const ARABIAN_CHORDS = [
+    [277.18, 329.63, 415.30], // C#m
+    [293.66, 349.23, 440.00], // Dm
+    [277.18, 349.23, 415.30], // C#dim
+    [261.63, 329.63, 392.00]  // C
+  ];
+  const ARABIAN_BASS = [138.59, 146.83, 138.59, 130.81];
   const BGM_MASTER_VOLUME = 2.35;
   const VOICE_MASTER_VOLUME = 0.42;
   // ステージ3 BGM：フリジアン・ドミナント寄りの和音進行（Hz）
@@ -684,9 +692,8 @@
   function playSe(type) {
     ensureAudioContext();
 
-    // 基本はボイス優先だが、撃破・残機取得はSEも重ねる
-    const playedVoice = playVoice(type);
-    if (playedVoice && type !== 'enemyDefeat' && type !== 'life' && type !== 'fall') return;
+    // 全イベントでボイスとSEを重ねて再生する
+    playVoice(type);
 
     if (!audio.ctx) return;
     const now = audio.ctx.currentTime;
