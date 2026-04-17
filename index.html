@@ -386,12 +386,12 @@
 
         // ホバリング（ふわっと）前提の離れた足場
         {x: 230,  y: 340, w: 90, h: 18},
-        {x: 620,  y: 300, w: 84, h: 18},
+        {x: 620,  y: 300, w: 84, h: 18, kind: 'sinking', sinkSpeed: 0.22, maxSink: 60},
         {x: 980,  y: 256, w: 84, h: 18},
-        {x: 1360, y: 236, w: 86, h: 18},
-        {x: 1710, y: 290, w: 84, h: 18},
+        {x: 1360, y: 236, w: 86, h: 18, kind: 'crumbling', crumbleDelayMs: 850},
+        {x: 1710, y: 290, w: 84, h: 18, kind: 'sinking', sinkSpeed: 0.25, maxSink: 56},
         {x: 2080, y: 250, w: 84, h: 18},
-        {x: 2460, y: 300, w: 92, h: 18}
+        {x: 2460, y: 300, w: 92, h: 18, kind: 'crumbling', crumbleDelayMs: 760}
       ],
       stars: [
         {x: 140,  y: 390, collected: false},
@@ -400,7 +400,7 @@
         {x: 1738, y: 254, collected: false},
         {x: 2490, y: 270, collected: false}
       ],
-      lifeItem: {x: 200, y: 390, collected: false},
+      lifeItem: {x: 1180, y: 390, collected: false},
       goal: {x: 2880, y: 380, w: 40, h: 40},
       // ステージ2より少なめ（従来の敵＋ハンマー＋新敵）
       enemies: [
@@ -416,7 +416,14 @@
         {x: 1120, y: 86, w: 34, h: 34, minX: 900, maxX: 1450, speed: 1.4, dir: 1, dropCooldown: 40, seed: 1},
         {x: 2140, y: 96, w: 34, h: 34, minX: 1940, maxX: 2560, speed: 1.55, dir: -1, dropCooldown: 70, seed: 2}
       ],
-      skyDrops: []
+      skyDrops: [],
+      // 固定ダメージ障害物（サボテン）
+      hazards: [
+        {x: 530, y: 380, w: 34, h: 40, kind: 'cactus', damage: 1},
+        {x: 915, y: 380, w: 34, h: 40, kind: 'cactus', damage: 1},
+        {x: 1540, y: 380, w: 34, h: 40, kind: 'cactus', damage: 1},
+        {x: 2380, y: 380, w: 34, h: 40, kind: 'cactus', damage: 1}
+      ]
     };
   }
 
@@ -434,6 +441,14 @@
   let skyDrops = [];
   let lifeItem = null;
   let starShots = [];
+  let hazards = [];
+  let sandParticles = [];
+  let sandStepCooldownUntilMs = 0;
+
+  const DESERT_BG = new Image();
+  DESERT_BG.src = 'assets/images/desert-stage3-bg.png';
+  let desertBgReady = false;
+  DESERT_BG.onload = () => { desertBgReady = true; };
 
   let camX = 0;
   let collected = 0;
@@ -468,8 +483,10 @@
     bgmVariant: 'stage1',
     voiceReady: false,
     voicePlayers: {},
-    voiceCursor: {},
-    voiceLastPlayedAt: {}
+    voiceLastPlayedAt: {},
+    activeVoiceType: '',
+    voiceQueue: [],
+    voiceQueueSet: {}
   };
 
   const BGM_CHORDS = [
@@ -495,6 +512,7 @@
     star: 'assets/audio/voice/star.wav',
     life: 'assets/audio/voice/life-up.wav',
     enemy: 'assets/audio/voice/enemy-hit.wav',
+    fall: 'assets/audio/voice/fall.wav',
     enemyDefeat: 'assets/audio/voice/enemy-defeat.wav',
     fanfare: 'assets/audio/voice/clear.wav'
   };
@@ -502,33 +520,58 @@
   function initVoicePlayers() {
     if (audio.voiceReady) return;
     for (const [key, src] of Object.entries(VOICE_SOURCES)) {
-      audio.voicePlayers[key] = [];
-      audio.voiceCursor[key] = 0;
+      audio.voicePlayers[key] = null;
       audio.voiceLastPlayedAt[key] = 0;
-      for (let i = 0; i < 2; i++) {
-        const player = new Audio(src);
-        player.preload = 'auto';
-        const baseVolume = key === 'fanfare' ? 0.8 : 0.72;
-        player.volume = baseVolume * VOICE_MASTER_VOLUME;
-        audio.voicePlayers[key].push(player);
-      }
+      const player = new Audio(src);
+      player.preload = 'auto';
+      const baseVolume = key === 'fanfare' ? 0.8 : 0.72;
+      player.volume = baseVolume * VOICE_MASTER_VOLUME;
+      player.addEventListener('ended', () => {
+        if (audio.activeVoiceType === key) {
+          audio.activeVoiceType = '';
+        }
+        flushVoiceQueue();
+      });
+      audio.voicePlayers[key] = player;
     }
     audio.voiceReady = true;
   }
 
-  function playVoice(type) {
-    const players = audio.voicePlayers[type];
-    if (!players || players.length === 0) return false;
+  function isVoicePlaying() {
+    const activeType = audio.activeVoiceType;
+    if (!activeType) return false;
+    const activePlayer = audio.voicePlayers[activeType];
+    return !!(activePlayer && !activePlayer.paused && !activePlayer.ended);
+  }
+
+  function queueVoice(type) {
+    if (audio.voiceQueueSet[type]) return;
+    audio.voiceQueue.push(type);
+    audio.voiceQueueSet[type] = true;
+  }
+
+  function flushVoiceQueue() {
+    if (isVoicePlaying()) return;
+    while (audio.voiceQueue.length > 0) {
+      const nextType = audio.voiceQueue.shift();
+      delete audio.voiceQueueSet[nextType];
+      if (playVoice(nextType, true)) return;
+    }
+  }
+
+  function playVoice(type, fromQueue = false) {
+    const player = audio.voicePlayers[type];
+    if (!player) return false;
 
     const nowMs = performance.now();
-    const cooldownMs = type === 'jump' ? 5000 : (type === 'fanfare' ? 800 : 120);
+    const cooldownMs = type === 'jump' ? 5000 : (type === 'fanfare' ? 800 : (type === 'fall' ? 300 : 120));
     const lastPlayedAt = audio.voiceLastPlayedAt[type] || 0;
-    if (nowMs - lastPlayedAt < cooldownMs) return true;
+    if (!fromQueue && nowMs - lastPlayedAt < cooldownMs) return true;
 
-    const cursor = audio.voiceCursor[type] || 0;
-    const player = players[cursor];
-    audio.voiceCursor[type] = (cursor + 1) % players.length;
-    audio.voiceLastPlayedAt[type] = nowMs;
+    if (isVoicePlaying()) {
+      queueVoice(type);
+      return true;
+    }
 
     try {
       player.currentTime = 0;
@@ -536,6 +579,8 @@
       if (promise && typeof promise.catch === 'function') {
         promise.catch(() => {});
       }
+      audio.activeVoiceType = type;
+      audio.voiceLastPlayedAt[type] = nowMs;
       return true;
     } catch (_err) {
       return false;
@@ -659,7 +704,7 @@
 
     // 基本はボイス優先だが、撃破・残機取得はSEも重ねる
     const playedVoice = playVoice(type);
-    if (playedVoice && type !== 'enemyDefeat' && type !== 'life') return;
+    if (playedVoice && type !== 'enemyDefeat' && type !== 'life' && type !== 'fall') return;
 
     if (!audio.ctx) return;
     const now = audio.ctx.currentTime;
@@ -725,6 +770,45 @@
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
       osc.start(now);
       osc.stop(now + 0.14);
+      return;
+    }
+
+    if (type === 'fall') {
+      // 落下時は低めの「ドスン」を重ねて着地失敗の手触りを強める
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.14);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      osc.start(now);
+      osc.stop(now + 0.18);
+      return;
+    }
+
+    if (type === 'sandStep') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.045, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+
+      // 砂粒っぽいノイズ感を短く重ねる
+      const noise = audio.ctx.createOscillator();
+      const noiseGain = audio.ctx.createGain();
+      noise.type = 'square';
+      noise.frequency.setValueAtTime(860, now);
+      noise.frequency.exponentialRampToValueAtTime(430, now + 0.06);
+      noiseGain.gain.setValueAtTime(0.0001, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.012, now + 0.005);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+      noise.connect(noiseGain);
+      noiseGain.connect(audio.ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.07);
       return;
     }
 
@@ -828,6 +912,14 @@
     });
     hammers = [];
     starShots = [];
+    sandStepCooldownUntilMs = 0;
+    sandParticles = [];
+    platforms.forEach((p) => {
+      p.y = typeof p.baseY === 'number' ? p.baseY : p.y;
+      p.disabled = false;
+      p.sinkActivated = false;
+      p.crumbleTriggeredAt = 0;
+    });
     if (lifeItem) lifeItem.collected = false;
     skyDropEnemies.forEach((se) => {
       se.x = se.minX;
@@ -902,6 +994,7 @@
   }
 
   function onFallDamage() {
+    playSe('fall');
     lives--;
     updateHud();
     if (lives <= 0) {
@@ -916,7 +1009,13 @@
   function loadStage(stageName) {
     const data = stageName === 'stage2' ? createStage2() : (stageName === 'stage3' ? createStage3() : createStage1());
     worldWidth = data.worldWidth;
-    platforms = data.platforms.map((p) => ({...p}));
+    platforms = data.platforms.map((p) => ({
+      ...p,
+      baseY: p.y,
+      disabled: false,
+      sinkActivated: false,
+      crumbleTriggeredAt: 0
+    }));
     stars = data.stars.map((s) => ({...s}));
     goal = {...data.goal};
     stageHoles = (data.holes || []).map((h) => ({...h}));
@@ -926,6 +1025,7 @@
     hammerEnemies = (data.hammerEnemies || []).map((he) => ({...he, defeated: false}));
     skyDropEnemies = (data.skyDropEnemies || []).map((se) => ({...se, defeated: false}));
     skyDrops = [];
+    hazards = (data.hazards || []).map((h) => ({...h}));
     lifeItem = data.lifeItem ? {...data.lifeItem} : null;
     hammers = [];
     starShots = [];
@@ -959,6 +1059,51 @@
     return (dx * dx + dy * dy) < (cr * cr);
   }
 
+  function drawTiledBackground(image, speed) {
+    // 背景は1枚絵をそのまま使い、横方向のみループさせる
+    const drawWidth = W + 2;
+    const tileStart = ((-camX * speed) % drawWidth + drawWidth) % drawWidth - drawWidth;
+    for (let i = 0; i < 4; i++) {
+      const dx = tileStart + i * drawWidth;
+      ctx.drawImage(image, dx, 0, drawWidth, H);
+    }
+  }
+
+  function initSandParticles() {
+    sandParticles = [];
+    for (let i = 0; i < 34; i++) {
+      sandParticles.push({
+        x: Math.random() * W,
+        y: 210 + Math.random() * (H - 210),
+        size: 0.8 + Math.random() * 2.0,
+        vx: 0.25 + Math.random() * 0.55,
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function updateSandParticles() {
+    if (sandParticles.length === 0) initSandParticles();
+    const t = performance.now() / 1000;
+    for (const sp of sandParticles) {
+      sp.x -= sp.vx;
+      sp.y += Math.sin(t * 2.4 + sp.sway) * 0.12;
+      if (sp.x < -6) {
+        sp.x = W + 6;
+        sp.y = 210 + Math.random() * (H - 210);
+      }
+    }
+  }
+
+  function drawSandParticles() {
+    ctx.fillStyle = 'rgba(255, 220, 145, 0.35)';
+    for (const sp of sandParticles) {
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // ============================================
   // ゲームループ: 更新
   // ============================================
@@ -967,6 +1112,23 @@
     if (gameWon) {
       clearTimer++;
       return;
+    }
+
+    const nowMs = performance.now();
+
+    // ステージ3ギミック更新（流砂/崩れ）
+    for (const p of platforms) {
+      if (p.disabled) continue;
+      if (p.kind === 'crumbling' && p.crumbleTriggeredAt > 0) {
+        if (nowMs - p.crumbleTriggeredAt >= (p.crumbleDelayMs || 900)) {
+          p.disabled = true;
+          continue;
+        }
+      }
+      if (p.kind === 'sinking' && p.sinkActivated) {
+        const limit = p.baseY + (p.maxSink || 60);
+        p.y = Math.min(limit, p.y + (p.sinkSpeed || 0.2));
+      }
     }
 
     // 敵の左右往復
@@ -1193,6 +1355,7 @@
     }
 
     for (const p of platforms) {
+      if (p.disabled) continue;
       if (rectCircleCollide(p, player.x, player.y, player.r)) {
         if (player.vx > 0)      player.x = p.x - player.r;
         else if (player.vx < 0) player.x = p.x + p.w + player.r;
@@ -1205,6 +1368,7 @@
     const wasInAir = !player.onGround;
     player.onGround = false;
     for (const p of platforms) {
+      if (p.disabled) continue;
       if (rectCircleCollide(p, player.x, player.y, player.r)) {
         if (player.vy > 0) {
           player.y = p.y - player.r;
@@ -1212,6 +1376,10 @@
           player.vy = 0;
           player.onGround = true;
           jumpCount = 0;
+          if (p.kind === 'sinking') p.sinkActivated = true;
+          if (p.kind === 'crumbling' && p.crumbleTriggeredAt <= 0) {
+            p.crumbleTriggeredAt = nowMs;
+          }
         } else if (player.vy < 0) {
           player.y = p.y + p.h + player.r;
           player.vy = 0;
@@ -1264,6 +1432,14 @@
           return;
         }
       }
+      for (const hz of hazards) {
+        if (hz.kind !== 'cactus') continue;
+        if (rectCircleCollide(hz, player.x, player.y, player.r)) {
+          playSe('enemy');
+          onPlayerDamage(true);
+          return;
+        }
+      }
     }
 
     // 星回収
@@ -1309,6 +1485,19 @@
     const targetCamX = player.x - W / 2;
     camX += (targetCamX - camX) * 0.1;
     camX = Math.max(0, Math.min(camX, worldWidth - W));
+
+    // 砂漠専用の環境演出
+    if (stageTheme === 'desert') {
+      updateSandParticles();
+      if (
+        player.onGround &&
+        Math.abs(player.vx) > 0.55 &&
+        nowMs >= sandStepCooldownUntilMs
+      ) {
+        playSe('sandStep');
+        sandStepCooldownUntilMs = nowMs + 210;
+      }
+    }
 
     // まばたき
     player.eyeBlink = (player.eyeBlink + 1) % 180;
@@ -1604,45 +1793,59 @@
     }
   }
 
+  function drawCactus(h) {
+    const cx = h.x + h.w * 0.5;
+    const baseY = h.y + h.h;
+    ctx.strokeStyle = '#3A7A42';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, baseY);
+    ctx.lineTo(cx, h.y + 4);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx - 2, h.y + 18);
+    ctx.lineTo(cx - 11, h.y + 10);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 2, h.y + 24);
+    ctx.lineTo(cx + 12, h.y + 16);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8D5E2C';
+    ctx.beginPath();
+    ctx.ellipse(cx, baseY + 2, 12, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function draw() {
     // 描画・BGM と同じ基準（loadStage で theme / bgmVariant が同期される）
     const isDesertStage = stageTheme === 'desert';
 
     if (isDesertStage) {
-      // 砂漠：夕暮れグラデーション
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#2C1B4D');
-      skyGrad.addColorStop(0.5, '#D45A5A');
-      skyGrad.addColorStop(1, '#FFC371');
-      ctx.fillStyle = skyGrad;
+      if (desertBgReady) {
+        // レイヤー分割はせず、背景1枚をそのまま表示
+        drawTiledBackground(DESERT_BG, 0.12);
+      } else {
+        // 画像未読込時のフォールバック
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+        skyGrad.addColorStop(0, '#2C1B4D');
+        skyGrad.addColorStop(0.5, '#D45A5A');
+        skyGrad.addColorStop(1, '#FFC371');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 砂漠の熱気（薄いオーバーレイ）
+      const heatGrad = ctx.createLinearGradient(0, 0, 0, H);
+      heatGrad.addColorStop(0, 'rgba(255, 150, 80, 0.06)');
+      heatGrad.addColorStop(1, 'rgba(255, 220, 130, 0.1)');
+      ctx.fillStyle = heatGrad;
       ctx.fillRect(0, 0, W, H);
 
-      // 夕日（画面固定）
-      ctx.fillStyle = 'rgba(255, 100, 50, 0.85)';
-      ctx.beginPath();
-      ctx.arc(W * 0.7, 200, 120, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 奥のピラミッド（パララックス弱）
-      ctx.fillStyle = '#8B5A2B';
-      for (let i = 0; i < 4; i++) {
-        const px = ((i * 500 - camX * 0.1) % worldWidth + worldWidth) % worldWidth;
-        ctx.beginPath();
-        ctx.moveTo(px, 420);
-        ctx.lineTo(px + 150, 200 + i * 30);
-        ctx.lineTo(px + 300, 420);
-        ctx.fill();
-      }
-      // 手前のピラミッド（パララックス強め）
-      ctx.fillStyle = '#C28F43';
-      for (let i = 0; i < 3; i++) {
-        const px = ((i * 700 + 200 - camX * 0.2) % worldWidth + worldWidth) % worldWidth;
-        ctx.beginPath();
-        ctx.moveTo(px, 420);
-        ctx.lineTo(px + 250, 120 + i * 10);
-        ctx.lineTo(px + 500, 420);
-        ctx.fill();
-      }
+      // 砂塵パーティクル
+      drawSandParticles();
     } else {
       // 通常ステージ：空
       ctx.fillStyle = '#87CEEB';
@@ -1672,19 +1875,57 @@
 
     // プラットフォーム
     for (const p of platforms) {
+      if (p.disabled) continue;
       if (p.y >= 420) {
         // 地面：砂漠は砂色、通常は芝＋土
         ctx.fillStyle = isDesertStage ? '#F4D03F' : '#7AB84D';
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = isDesertStage ? '#D4AC0D' : '#8B6F47';
         ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
+        if (isDesertStage) {
+          // 砂の質感（ドット/かすれ線）
+          ctx.fillStyle = 'rgba(195, 146, 57, 0.45)';
+          const dotCount = Math.max(3, Math.floor(p.w / 34));
+          for (let i = 0; i < dotCount; i++) {
+            const tx = p.x + 10 + i * ((p.w - 20) / dotCount);
+            const ty = p.y + 6 + (i % 2) * 4;
+            ctx.fillRect(tx, ty, 2, 2);
+          }
+          ctx.strokeStyle = 'rgba(173, 124, 44, 0.42)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(p.x + 6, p.y + 13);
+          ctx.lineTo(p.x + p.w - 10, p.y + 13);
+          ctx.stroke();
+        }
       } else {
         // 浮遊：砂漠は遺跡の石風、通常は紫系
         ctx.fillStyle = isDesertStage ? '#E5E7E9' : '#B88EE8';
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = isDesertStage ? '#B2BABB' : '#9F6FD4';
         ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
+        if (isDesertStage) {
+          // 崩れる足場は予告で点滅
+          if (p.kind === 'crumbling' && p.crumbleTriggeredAt > 0) {
+            const blink = Math.floor(performance.now() / 80) % 2 === 0;
+            if (blink) {
+              ctx.fillStyle = 'rgba(215, 80, 65, 0.35)';
+              ctx.fillRect(p.x, p.y, p.w, p.h);
+            }
+          }
+          ctx.strokeStyle = 'rgba(120, 125, 130, 0.35)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(p.x + 8, p.y + 7);
+          ctx.lineTo(p.x + p.w - 8, p.y + 5);
+          ctx.stroke();
+        }
       }
+    }
+
+    // サボテン障害物
+    for (const hz of hazards) {
+      if (hz.kind === 'cactus') drawCactus(hz);
     }
 
     // オアシス（水）

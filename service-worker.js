@@ -1,9 +1,10 @@
 // Service Worker - オフライン対応
-const CACHE_NAME = 'puni-adventure-v1';
+const CACHE_NAME = 'puni-adventure-v2';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './assets/images/desert-stage3-bg.png'
 ];
 
 self.addEventListener('install', (event) => {
