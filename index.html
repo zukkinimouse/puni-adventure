@@ -176,6 +176,32 @@
     font-weight: 600;
   }
   .stage-btn:active { transform: scale(0.98); }
+  .char-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .char-btn {
+    border: 2px solid #d7d7e8;
+    background: #f8f8ff;
+    color: #444a69;
+    border-radius: 999px;
+    padding: 8px 14px;
+    min-height: 44px;
+    min-width: 120px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .char-btn.active {
+    border-color: #8b88c6;
+    background: #ecebff;
+    color: #3a3772;
+    box-shadow: 0 2px 10px rgba(93, 88, 158, 0.22);
+  }
+  .char-btn:active { transform: scale(0.98); }
 
   #rotate-hint {
     position: absolute; inset: 0;
@@ -236,7 +262,7 @@
 <div id="wrapper">
 
   <div id="top-bar">
-    <span id="status">ピンクの何か冒険中</span>
+    <span id="status">ルナモン冒険中</span>
     <span id="score">💎 0 / 5</span>
     <span id="lives">❤️ 3</span>
   </div>
@@ -247,11 +273,16 @@
     <div id="stage-select">
       <div class="panel">
         <h2>ステージをえらんでね</h2>
-        <p>ステージ2は敵が増えて足場も厳しめです / ステージ3は砂漠です</p>
+        <p>ステージ2は敵が増えて足場も厳しめです / ステージ3は砂漠です / ステージ4は仮設計です</p>
         <div class="row">
           <button id="stage1-btn" class="stage-btn">ステージ1（ノーマル）</button>
           <button id="stage2-btn" class="stage-btn">ステージ2（ハード）</button>
           <button id="stage3-btn" class="stage-btn">ステージ3（砂漠）</button>
+          <button id="stage4-btn" class="stage-btn">ステージ4（仮設計）</button>
+        </div>
+        <div class="char-row">
+          <button id="char-puni-btn" class="char-btn">キャラ: プニ</button>
+          <button id="char-lunamon-btn" class="char-btn active">キャラ: ルナモン</button>
         </div>
       </div>
     </div>
@@ -290,6 +321,9 @@
   const stage1Btn = document.getElementById('stage1-btn');
   const stage2Btn = document.getElementById('stage2-btn');
   const stage3Btn = document.getElementById('stage3-btn');
+  const stage4Btn = document.getElementById('stage4-btn');
+  const charPuniBtn = document.getElementById('char-puni-btn');
+  const charLunamonBtn = document.getElementById('char-lunamon-btn');
 
   // ============================================
   // 定数・設定
@@ -511,6 +545,29 @@
     };
   }
 
+  function createStage4() {
+    return {
+      worldWidth: 1800,
+      theme: 'normal',
+      holes: [],
+      oasis: null,
+      ceilingGates: [],
+      windZones: [],
+      // 仮設計: 地面のみのシンプル構成
+      platforms: [
+        {x: 0, y: 420, w: 1800, h: 30}
+      ],
+      stars: [],
+      lifeItem: null,
+      goal: {x: 1720, y: 380, w: 40, h: 40},
+      enemies: [],
+      hammerEnemies: [],
+      skyDropEnemies: [],
+      skyDrops: [],
+      hazards: []
+    };
+  }
+
   let worldWidth = WORLD_WIDTH;
   let platforms = [];
   let stars = [];
@@ -547,7 +604,28 @@
   let starAmmo = 0;
   let gameStarted = false;
   let currentStageName = '';
+  let playerSkin = 'lunamon';
   const MAX_CONSECUTIVE_JUMPS = 2;
+
+  function getSkinLabel() {
+    return playerSkin === 'puni' ? 'プニ' : 'ルナモン';
+  }
+
+  function updateStatusLabel() {
+    const stageSuffix = currentStageName ? (' - ' + currentStageName) : '';
+    statusEl.textContent = getSkinLabel() + '冒険中' + stageSuffix;
+  }
+
+  function updateCharacterButtons() {
+    charPuniBtn.classList.toggle('active', playerSkin === 'puni');
+    charLunamonBtn.classList.toggle('active', playerSkin === 'lunamon');
+  }
+
+  function setPlayerSkin(skin) {
+    playerSkin = skin === 'puni' ? 'puni' : 'lunamon';
+    updateCharacterButtons();
+    updateStatusLabel();
+  }
 
   // ============================================
   // 入力
@@ -1061,7 +1139,10 @@
   }
 
   function loadStage(stageName) {
-    const data = stageName === 'stage2' ? createStage2() : (stageName === 'stage3' ? createStage3() : createStage1());
+    let data = createStage1();
+    if (stageName === 'stage2') data = createStage2();
+    if (stageName === 'stage3') data = createStage3();
+    if (stageName === 'stage4') data = createStage4();
     worldWidth = data.worldWidth;
     platforms = data.platforms.map((p) => ({
       ...p,
@@ -1085,10 +1166,13 @@
     lifeItem = data.lifeItem ? {...data.lifeItem} : null;
     hammers = [];
     starShots = [];
-    currentStageName = stageName === 'stage2' ? 'ステージ2' : (stageName === 'stage3' ? 'ステージ3' : 'ステージ1');
+    currentStageName =
+      stageName === 'stage2' ? 'ステージ2' :
+      stageName === 'stage3' ? 'ステージ3' :
+      stageName === 'stage4' ? 'ステージ4' : 'ステージ1';
     audio.bgmVariant = stageName === 'stage2' ? 'stage2' : (stageName === 'stage3' ? 'desert' : 'stage1');
     restartBgmIfRunning();
-    statusEl.textContent = 'ピンクの何か冒険中 - ' + currentStageName;
+    updateStatusLabel();
     reset();
   }
 
@@ -1101,10 +1185,14 @@
   stage1Btn.addEventListener('click', () => startGame('stage1'));
   stage2Btn.addEventListener('click', () => startGame('stage2'));
   stage3Btn.addEventListener('click', () => startGame('stage3'));
+  stage4Btn.addEventListener('click', () => startGame('stage4'));
+  charPuniBtn.addEventListener('click', () => setPlayerSkin('puni'));
+  charLunamonBtn.addEventListener('click', () => setPlayerSkin('lunamon'));
+  updateCharacterButtons();
   backStageSelectBtn.addEventListener('click', () => {
     gameStarted = false;
     currentStageName = '';
-    statusEl.textContent = 'ピンクの何か冒険中';
+    updateStatusLabel();
     stageSelectEl.style.display = 'flex';
     messageEl.style.display = 'none';
     clearActionsEl.style.display = 'none';
@@ -1583,23 +1671,8 @@
   // ============================================
   // ゲームループ: 描画
   // ============================================
-  function drawPlayer(x, y) {
-    // 無敵中は点滅表示（一定間隔で非表示フレームを作る）
-    if (isInvincible()) {
-      const blinkOn = Math.floor(performance.now() / 80) % 2 === 0;
-      if (!blinkOn) return;
-    }
-
-    // スクイッシュ効果（縦に潰れたり伸びたり）
-    const scaleY = 1 + player.squish;
-    const scaleX = 1 - player.squish * 0.5;
-    const clearPose = gameWon;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scaleX, scaleY);
-
-    // 本体（ピンクの丸）
+  function drawPuniSkin(clearPose, blink, motion) {
+    // 本体（丸く柔らかい）
     ctx.fillStyle = '#FFB6D5';
     ctx.beginPath();
     ctx.arc(0, 0, player.r, 0, Math.PI * 2);
@@ -1608,35 +1681,36 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // ほっぺ
+    // ほっぺ（移動時は少し跳ねる）
+    const cheekOffsetY = motion.walkBounce * 0.28;
     ctx.fillStyle = '#FF8FB5';
     ctx.beginPath();
-    ctx.arc(-8 * player.facing, 4, 4, 0, Math.PI * 2);
+    ctx.arc(-8 * player.facing, 4 + cheekOffsetY, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(8 * player.facing, 4, 4, 0, Math.PI * 2);
+    ctx.arc(8 * player.facing, 4 + cheekOffsetY, 4, 0, Math.PI * 2);
     ctx.fill();
 
     // 目
-    const blink = player.eyeBlink < 8;
     ctx.fillStyle = '#222';
+    const eyeY = -4 + motion.airLift * 0.2;
     if (blink) {
-      ctx.fillRect(-6 * player.facing - 2, -4, 4, 1);
-      ctx.fillRect( 6 * player.facing - 2, -4, 4, 1);
+      ctx.fillRect(-6 * player.facing - 2, eyeY, 4, 1);
+      ctx.fillRect(6 * player.facing - 2, eyeY, 4, 1);
     } else {
       ctx.beginPath();
-      ctx.ellipse(-6 * player.facing, -4, 2, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(-6 * player.facing, eyeY, 2 + motion.speed01 * 0.2, 4, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse( 6 * player.facing, -4, 2, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(6 * player.facing, eyeY, 2 + motion.speed01 * 0.2, 4, 0, 0, Math.PI * 2);
       ctx.fill();
       // 目のハイライト
       ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(-6 * player.facing, -5, 0.8, 0, Math.PI * 2);
+      ctx.arc(-6 * player.facing, eyeY - 1, 0.8, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc( 6 * player.facing, -5, 0.8, 0, Math.PI * 2);
+      ctx.arc(6 * player.facing, eyeY - 1, 0.8, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1664,12 +1738,217 @@
       ctx.lineTo(15, -10);
       ctx.stroke();
     } else {
+      const footTilt = motion.footSwing * 0.25;
+      const footYOffset = motion.walkBounce * 0.4;
       ctx.beginPath();
-      ctx.ellipse(-10, 16, 6, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(-10, 16 + footYOffset, 6, 4, -footTilt, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse( 10, 16, 6, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(10, 16 - footYOffset, 6, 4, footTilt, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  function drawLunamonSkin(clearPose, blink, motion) {
+    // しっぽ（背面）: 巻いた大きめシルエット
+    ctx.fillStyle = '#8B88C6';
+    ctx.beginPath();
+    ctx.ellipse(
+      (-15 + motion.tailSwing * 2.4) * player.facing,
+      3 + motion.walkBounce * 0.25,
+      20,
+      16,
+      (0.25 + motion.tailSwing * 0.08) * player.facing,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.strokeStyle = '#6D69A8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // しっぽ先端（三日月・クリーム）
+    ctx.fillStyle = '#FFFDD0';
+    ctx.beginPath();
+    ctx.arc((-27 + motion.tailSwing * 3.5) * player.facing, -2 + motion.walkBounce * 0.2, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc((-24 * player.facing) + (3 * player.facing), -2, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // 耳（大きめ。移動時に軽く弾む）
+    const earBounce = motion.walkBounce * 0.3;
+    ctx.fillStyle = '#8B88C6';
+    ctx.beginPath();
+    ctx.ellipse(-11, -16 - earBounce, 7, 10, -0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(11, -16 + earBounce, 7, 10, 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 耳の内側（夜空ネイビー）
+    ctx.fillStyle = '#191970';
+    ctx.beginPath();
+    ctx.ellipse(-11, -16 - earBounce, 3.4, 5.2, -0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(11, -16 + earBounce, 3.4, 5.2, 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 胴体（ふわっとした丸い体）
+    ctx.fillStyle = '#8B88C6';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, player.r + 2, player.r + 1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#6D69A8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // お腹（クリーム）
+    ctx.fillStyle = '#FFFDD0';
+    ctx.beginPath();
+    ctx.ellipse(0, 6, 11, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 首元の星ペンダント
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeStyle = '#D8A800';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * 3.5, 12 + Math.sin(a) * 3.5);
+      const a2 = ((i * 2 + 1) * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a2) * 1.5, 12 + Math.sin(a2) * 1.5);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 目（まばたき対応）
+    const eyeLeftX = -6 * player.facing;
+    const eyeRightX = 6 * player.facing;
+    const eyeY = -4 + motion.airLift * 0.25;
+    if (blink) {
+      ctx.strokeStyle = '#1F1C33';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(eyeLeftX - 2, eyeY);
+      ctx.lineTo(eyeLeftX + 2, eyeY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(eyeRightX - 2, eyeY);
+      ctx.lineTo(eyeRightX + 2, eyeY);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#1F1C33';
+      ctx.beginPath();
+      ctx.ellipse(eyeLeftX, eyeY, 2.9 + motion.speed01 * 0.15, 4.9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(eyeRightX, eyeY, 2.9 + motion.speed01 * 0.15, 4.9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ハイライトは多めに入れてキラッと見せる
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(eyeLeftX - 0.6, eyeY - 1.6, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(eyeRightX - 0.6, eyeY - 1.6, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(eyeLeftX + 1.1, eyeY + 0.8, 0.65, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(eyeRightX + 1.1, eyeY + 0.8, 0.65, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 小悪魔っぽいニヤリ口元
+    ctx.strokeStyle = '#4D2D58';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-3, 4 + motion.walkBounce * 0.22);
+    ctx.quadraticCurveTo(2 * player.facing, 9 + motion.walkBounce * 0.12, 6, 4 + motion.walkBounce * 0.22);
+    ctx.stroke();
+
+    // 足（クリア時は決めポーズ）
+    ctx.fillStyle = '#6D69A8';
+    if (clearPose) {
+      const t = Math.sin(clearTimer / 6) * 1.5;
+      ctx.beginPath();
+      ctx.ellipse(-13, 12 + t, 6, 4, -0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(12, 17 - t, 6, 4, 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // クリア時は前脚を上げてガッツポーズ
+      ctx.strokeStyle = '#6D69A8';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-5, 3);
+      ctx.lineTo(-16, -11);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(5, 3);
+      ctx.lineTo(16, -11);
+      ctx.stroke();
+    } else {
+      const pawSwing = motion.footSwing * 0.2;
+      const pawYOffset = motion.walkBounce * 0.5;
+      ctx.beginPath();
+      ctx.ellipse(-10, 16 + pawYOffset, 6, 4, -0.08 - pawSwing, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(10, 16 - pawYOffset, 6, 4, 0.08 + pawSwing, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawPlayer(x, y) {
+    // 無敵中は点滅表示（一定間隔で非表示フレームを作る）
+    if (isInvincible()) {
+      const blinkOn = Math.floor(performance.now() / 80) % 2 === 0;
+      if (!blinkOn) return;
+    }
+
+    // スクイッシュ効果（縦に潰れたり伸びたり）
+    const scaleY = 1 + player.squish;
+    const scaleX = 1 - player.squish * 0.5;
+    const clearPose = gameWon;
+    const blink = player.eyeBlink < 8;
+    const speed01 = Math.min(1, Math.abs(player.vx) / MOVE_SPEED);
+    const movePhase = performance.now() * 0.018;
+    const walkBounce = (player.onGround && !clearPose) ? Math.sin(movePhase) * speed01 * 2.2 : 0;
+    const footSwing = (player.onGround && !clearPose) ? Math.sin(movePhase + Math.PI / 2) * speed01 : 0;
+    const tailSwing = Math.sin(movePhase * 0.72 + player.facing * 0.8) * (0.35 + speed01 * 0.65);
+    const airLift = !player.onGround ? Math.max(-2.8, Math.min(2.8, -player.vy * 0.28)) : 0;
+    const lean = Math.max(-0.18, Math.min(0.18, (player.vx / MOVE_SPEED) * 0.08 + footSwing * 0.05));
+    const motion = {
+      speed01,
+      walkBounce,
+      footSwing,
+      tailSwing,
+      airLift
+    };
+
+    ctx.save();
+    // 移動時は体を少し前傾させ、上下バウンスを加えて情報量を上げる
+    ctx.translate(x, y + walkBounce + airLift * 0.2);
+    ctx.rotate(lean * player.facing);
+    ctx.scale(scaleX, scaleY);
+
+    if (playerSkin === 'puni') {
+      drawPuniSkin(clearPose, blink, motion);
+    } else {
+      drawLunamonSkin(clearPose, blink, motion);
     }
 
     ctx.restore();
