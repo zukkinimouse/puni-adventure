@@ -482,14 +482,14 @@
   const BGM_BASS = [130.81, 146.83, 164.81, 196.0];
   const BGM_MASTER_VOLUME = 2.35;
   const VOICE_MASTER_VOLUME = 0.42;
-  // A Hijaz(Phrygian dominant) 寄りの音階でアラビア風に寄せる
-  const BGM_CHORDS_DESERT = [
-    [220.0, 277.18, 329.63],    // A C# E
-    [196.0, 246.94, 311.13],    // G B D#
-    [174.61, 220.0, 261.63],    // F A C
-    [196.0, 246.94, 329.63]     // G B E
+  // ステージ3 BGM：フリジアン・ドミナント寄りの和音進行（Hz）
+  const ARABIAN_CHORDS = [
+    [277.18, 329.63, 415.30],
+    [293.66, 349.23, 440.0],
+    [277.18, 349.23, 415.3],
+    [261.63, 329.63, 392.0]
   ];
-  const BGM_BASS_DESERT = [110.0, 98.0, 87.31, 98.0];
+  const ARABIAN_BASS = [138.59, 146.83, 138.59, 130.81];
   const VOICE_SOURCES = {
     jump: 'assets/audio/voice/jump.wav',
     star: 'assets/audio/voice/star.wav',
@@ -588,11 +588,14 @@
     let startTime = now + 0.03;
 
     // 穏やかで軽いポップ感のある4コード進行を8ステップで回す
+    const chordsArray = isDesert ? ARABIAN_CHORDS : BGM_CHORDS;
+    const bassArray = isDesert ? ARABIAN_BASS : BGM_BASS;
+
     for (let i = 0; i < 8; i++) {
       const step = (audio.bgmStep + i) % 8;
-      const chordIndex = Math.floor(step / 2) % (isDesert ? BGM_CHORDS_DESERT.length : BGM_CHORDS.length);
-      const chord = isDesert ? BGM_CHORDS_DESERT[chordIndex] : BGM_CHORDS[chordIndex];
-      const bass = isDesert ? BGM_BASS_DESERT[chordIndex] : BGM_BASS[chordIndex];
+      const chordIndex = Math.floor(step / 2) % chordsArray.length;
+      const chord = chordsArray[chordIndex];
+      const bass = bassArray[chordIndex];
 
       if (isDesert) {
         // 砂漠っぽい：ドローン低音＋弦っぽい中域
@@ -623,7 +626,8 @@
 
       // 砂漠はアラビア風の装飾フレーズ＋乾いたパーカッション
       if (isDesert) {
-        const leadScale = [220.0, 233.08, 277.18, 293.66, 329.63, 349.23, 392.0];
+        // アラビア和音に寄せた装飾音（Hz）
+        const leadScale = [261.63, 277.18, 293.66, 329.63, 349.23, 392.0, 415.3, 440.0];
         const leadA = leadScale[(step + chordIndex) % leadScale.length];
         const leadB = leadScale[(step + chordIndex + 2) % leadScale.length];
         playBgmTone(leadA, startTime + 0.08, stepDuration * 0.28, 'sine', 0.016);
@@ -1572,24 +1576,6 @@
     ctx.restore();
   }
 
-  function drawDesertPyramid(x, baseY, size) {
-    ctx.fillStyle = 'rgba(205, 160, 92, 0.35)';
-    ctx.beginPath();
-    ctx.moveTo(x - size * 0.5, baseY);
-    ctx.lineTo(x, baseY - size);
-    ctx.lineTo(x + size * 0.5, baseY);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(165, 120, 68, 0.28)';
-    ctx.beginPath();
-    ctx.moveTo(x, baseY - size);
-    ctx.lineTo(x + size * 0.5, baseY);
-    ctx.lineTo(x, baseY);
-    ctx.closePath();
-    ctx.fill();
-  }
-
   function drawPalmTree(x, baseY, scale) {
     // 幹
     ctx.strokeStyle = '#8A5A2B';
@@ -1619,29 +1605,58 @@
   }
 
   function draw() {
-    // 空
-    ctx.fillStyle = stageTheme === 'desert' ? '#F6D58A' : '#87CEEB';
-    ctx.fillRect(0, 0, W, H);
+    // 描画・BGM と同じ基準（loadStage で theme / bgmVariant が同期される）
+    const isDesertStage = stageTheme === 'desert';
 
-    // 砂漠の遠景（ピラミッド）
-    if (stageTheme === 'desert') {
-      for (let i = 0; i < 7; i++) {
-        const px = ((i * 360 - camX * 0.18) % (worldWidth + 400) + (worldWidth + 400)) % (worldWidth + 400) - 120;
-        const py = 320 + (i % 3) * 12;
-        const ps = 120 + (i % 2) * 40;
-        drawDesertPyramid(px, py, ps);
-      }
-    }
+    if (isDesertStage) {
+      // 砂漠：夕暮れグラデーション
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, '#2C1B4D');
+      skyGrad.addColorStop(0.5, '#D45A5A');
+      skyGrad.addColorStop(1, '#FFC371');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
 
-    // 雲（パララックス）
-    ctx.fillStyle = stageTheme === 'desert' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.8)';
-    for (let i = 0; i < 5; i++) {
-      const cx = ((i * 400 - camX * 0.3) % worldWidth + worldWidth) % worldWidth;
+      // 夕日（画面固定）
+      ctx.fillStyle = 'rgba(255, 100, 50, 0.85)';
       ctx.beginPath();
-      ctx.arc(cx,      80 + i * 30, 20, 0, Math.PI * 2);
-      ctx.arc(cx + 20, 80 + i * 30, 25, 0, Math.PI * 2);
-      ctx.arc(cx + 40, 80 + i * 30, 20, 0, Math.PI * 2);
+      ctx.arc(W * 0.7, 200, 120, 0, Math.PI * 2);
       ctx.fill();
+
+      // 奥のピラミッド（パララックス弱）
+      ctx.fillStyle = '#8B5A2B';
+      for (let i = 0; i < 4; i++) {
+        const px = ((i * 500 - camX * 0.1) % worldWidth + worldWidth) % worldWidth;
+        ctx.beginPath();
+        ctx.moveTo(px, 420);
+        ctx.lineTo(px + 150, 200 + i * 30);
+        ctx.lineTo(px + 300, 420);
+        ctx.fill();
+      }
+      // 手前のピラミッド（パララックス強め）
+      ctx.fillStyle = '#C28F43';
+      for (let i = 0; i < 3; i++) {
+        const px = ((i * 700 + 200 - camX * 0.2) % worldWidth + worldWidth) % worldWidth;
+        ctx.beginPath();
+        ctx.moveTo(px, 420);
+        ctx.lineTo(px + 250, 120 + i * 10);
+        ctx.lineTo(px + 500, 420);
+        ctx.fill();
+      }
+    } else {
+      // 通常ステージ：空
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(0, 0, W, H);
+      // 雲（パララックス）
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < 5; i++) {
+        const cx = ((i * 400 - camX * 0.3) % worldWidth + worldWidth) % worldWidth;
+        ctx.beginPath();
+        ctx.arc(cx,      80 + i * 30, 20, 0, Math.PI * 2);
+        ctx.arc(cx + 20, 80 + i * 30, 25, 0, Math.PI * 2);
+        ctx.arc(cx + 40, 80 + i * 30, 20, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     // 以降はカメラ座標系で描画
@@ -1658,24 +1673,16 @@
     // プラットフォーム
     for (const p of platforms) {
       if (p.y >= 420) {
-        if (stageTheme === 'desert') {
-          // 砂地（砂＋影）
-          ctx.fillStyle = '#E9C98B';
-          ctx.fillRect(p.x, p.y, p.w, p.h);
-          ctx.fillStyle = '#CFA45E';
-          ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
-        } else {
-          // 地面（芝＋土）
-          ctx.fillStyle = '#7AB84D';
-          ctx.fillRect(p.x, p.y, p.w, p.h);
-          ctx.fillStyle = '#8B6F47';
-          ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
-        }
-      } else {
-        // 浮遊プラットフォーム
-        ctx.fillStyle = '#B88EE8';
+        // 地面：砂漠は砂色、通常は芝＋土
+        ctx.fillStyle = isDesertStage ? '#F4D03F' : '#7AB84D';
         ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = '#9F6FD4';
+        ctx.fillStyle = isDesertStage ? '#D4AC0D' : '#8B6F47';
+        ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
+      } else {
+        // 浮遊：砂漠は遺跡の石風、通常は紫系
+        ctx.fillStyle = isDesertStage ? '#E5E7E9' : '#B88EE8';
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.fillStyle = isDesertStage ? '#B2BABB' : '#9F6FD4';
         ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
       }
     }
