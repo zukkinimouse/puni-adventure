@@ -441,6 +441,18 @@
       ],
       // オアシス（水エリア）: 中盤の地面区間に合わせる
       oasis: {x: 1840, y: 384, w: 320, h: 36},
+      // 高さ制限ゲート（上段ルートをそのまま通しにくくする）
+      ceilingGates: [
+        // 1つ目: 中盤の上段連打を抑制し、低中段への切替を促す
+        {x: 1020, y: 136, w: 240, h: 88},
+        // 2つ目: 終盤で再上昇する前に一度落とす
+        {x: 2610, y: 132, w: 190, h: 86}
+      ],
+      // 熱風ゾーン（上段だけ落下寄りにして高度維持を難しくする）
+      windZones: [
+        {x: 860, y: 120, w: 640, h: 220, forceY: 0.22},
+        {x: 2140, y: 120, w: 620, h: 220, forceY: 0.26}
+      ],
       platforms: [
         // 砂漠の地面（大穴で分割）
         {x: 0, y: 420, w: 900, h: 30},
@@ -448,21 +460,24 @@
         {x: 2880, y: 420, w: 520, h: 30},
 
         // ホバリング（ふわっと）前提の離れた足場
-        {x: 230,  y: 340, w: 90, h: 18},
-        {x: 640,  y: 300, w: 84, h: 18, kind: 'sinking', sinkSpeed: 0.28, maxSink: 70},
-        {x: 1080, y: 248, w: 84, h: 18},
-        {x: 1460, y: 224, w: 86, h: 18, kind: 'crumbling', crumbleDelayMs: 700},
-        {x: 1840, y: 286, w: 84, h: 18, kind: 'sinking', sinkSpeed: 0.3, maxSink: 72},
-        {x: 2220, y: 238, w: 84, h: 18},
-        {x: 2620, y: 208, w: 92, h: 18, kind: 'crumbling', crumbleDelayMs: 620},
-        {x: 3020, y: 270, w: 92, h: 18, kind: 'sinking', sinkSpeed: 0.27, maxSink: 64}
+        // 上下差に意味を持たせた段構成（低→中→高→中→低→高）
+        {x: 240,  y: 346, w: 92, h: 18},
+        {x: 640,  y: 300, w: 84, h: 18, kind: 'sinking', sinkSpeed: 0.34, maxSink: 84},
+        {x: 980,  y: 252, w: 86, h: 18},
+        {x: 1360, y: 224, w: 88, h: 18, kind: 'crumbling', crumbleDelayMs: 560},
+        {x: 1760, y: 294, w: 86, h: 18, kind: 'sinking', sinkSpeed: 0.36, maxSink: 86},
+        {x: 2140, y: 246, w: 86, h: 18},
+        {x: 2480, y: 238, w: 96, h: 18},
+        {x: 2560, y: 272, w: 92, h: 18, kind: 'crumbling', crumbleDelayMs: 520},
+        {x: 2920, y: 274, w: 112, h: 18, kind: 'sinking', sinkSpeed: 0.33, maxSink: 78}
       ],
       stars: [
         {x: 160,  y: 390, collected: false},
-        {x: 1095, y: 214, collected: false},
-        {x: 1475, y: 192, collected: false},
-        {x: 2235, y: 206, collected: false},
-        {x: 3050, y: 236, collected: false}
+        {x: 680,  y: 266, collected: false},
+        {x: 1530, y: 190, collected: false},
+        {x: 2250, y: 205, collected: false},
+        {x: 3070, y: 236, collected: false},
+        {x: 3340, y: 390, collected: false}
       ],
       lifeItem: {x: 1910, y: 390, collected: false},
       goal: {x: 3280, y: 380, w: 40, h: 40},
@@ -480,9 +495,9 @@
       ],
       // 新敵：空から物を落とす
       skyDropEnemies: [
-        {x: 1120, y: 86, w: 34, h: 34, minX: 940, maxX: 1600, speed: 1.55, dir: 1, dropCooldown: 34, seed: 1},
-        {x: 2480, y: 96, w: 34, h: 34, minX: 2380, maxX: 2860, speed: 1.62, dir: -1, dropCooldown: 48, seed: 2},
-        {x: 3120, y: 92, w: 34, h: 34, minX: 2920, maxX: 3360, speed: 1.5, dir: 1, dropCooldown: 58, seed: 3}
+        {x: 1120, y: 82, w: 34, h: 34, minX: 930, maxX: 1620, speed: 1.65, dir: 1, dropCooldown: 28, seed: 1},
+        {x: 2480, y: 90, w: 34, h: 34, minX: 2360, maxX: 2880, speed: 1.72, dir: -1, dropCooldown: 40, seed: 2},
+        {x: 3120, y: 88, w: 34, h: 34, minX: 2900, maxX: 3380, speed: 1.62, dir: 1, dropCooldown: 50, seed: 3}
       ],
       skyDrops: [],
       // 固定ダメージ障害物（サボテン）
@@ -503,6 +518,8 @@
   let stageHoles = [];
   let stageTheme = 'normal';
   let oasis = null;
+  let ceilingGates = [];
+  let windZones = [];
   let enemies = [];
   let hammerEnemies = [];
   let hammers = [];
@@ -827,7 +844,7 @@
       osc.frequency.setValueAtTime(180, now);
       osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.045, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.02, now + 0.008);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
       osc.start(now);
       osc.stop(now + 0.1);
@@ -839,7 +856,7 @@
       noise.frequency.setValueAtTime(860, now);
       noise.frequency.exponentialRampToValueAtTime(430, now + 0.06);
       noiseGain.gain.setValueAtTime(0.0001, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.012, now + 0.005);
+      noiseGain.gain.exponentialRampToValueAtTime(0.004, now + 0.005);
       noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
       noise.connect(noiseGain);
       noiseGain.connect(audio.ctx.destination);
@@ -1058,6 +1075,8 @@
     stageHoles = (data.holes || []).map((h) => ({...h}));
     stageTheme = data.theme || 'normal';
     oasis = data.oasis ? {...data.oasis} : null;
+    ceilingGates = (data.ceilingGates || []).map((g) => ({...g}));
+    windZones = (data.windZones || []).map((z) => ({...z}));
     enemies = data.enemies.map((e) => ({...e, defeated: false}));
     hammerEnemies = (data.hammerEnemies || []).map((he) => ({...he, defeated: false}));
     skyDropEnemies = (data.skyDropEnemies || []).map((se) => ({...se, defeated: false}));
@@ -1127,12 +1146,12 @@
     }
   }
 
-  function updateSandParticles() {
+  function updateSandParticles(dt = 1) {
     if (sandParticles.length === 0) initSandParticles();
     const t = performance.now() / 1000;
     for (const sp of sandParticles) {
-      sp.x -= sp.vx;
-      sp.y += Math.sin(t * 2.4 + sp.sway) * 0.12;
+      sp.x -= sp.vx * dt;
+      sp.y += Math.sin(t * 2.4 + sp.sway) * 0.12 * dt;
       if (sp.x < -6) {
         sp.x = W + 6;
         sp.y = 210 + Math.random() * (H - 210);
@@ -1152,10 +1171,10 @@
   // ============================================
   // ゲームループ: 更新
   // ============================================
-  function update() {
+  function update(dt = 1) {
     if (!gameStarted) return;
     if (gameWon) {
-      clearTimer++;
+      clearTimer += dt;
       return;
     }
 
@@ -1172,14 +1191,14 @@
       }
       if (p.kind === 'sinking' && p.sinkActivated) {
         const limit = p.baseY + (p.maxSink || 60);
-        p.y = Math.min(limit, p.y + (p.sinkSpeed || 0.2));
+        p.y = Math.min(limit, p.y + (p.sinkSpeed || 0.2) * dt);
       }
     }
 
     // 敵の左右往復
     for (const e of enemies) {
       if (e.defeated) continue;
-      e.x += e.speed * e.dir;
+      e.x += e.speed * e.dir * dt;
       if (e.x <= e.minX) {
         e.x = e.minX;
         e.dir = 1;
@@ -1193,7 +1212,7 @@
     for (const he of hammerEnemies) {
       if (he.defeated) continue;
       he.vx = he.speed * he.dir;
-      he.x += he.vx;
+      he.x += he.vx * dt;
       if (he.x <= he.minX) {
         he.x = he.minX;
         he.dir = 1;
@@ -1203,8 +1222,8 @@
       }
 
       he.justLanded = false;
-      if (he.jumpCooldown > 0) he.jumpCooldown--;
-      if (he.throwCooldown > 0) he.throwCooldown--;
+      if (he.jumpCooldown > 0) he.jumpCooldown -= dt;
+      if (he.throwCooldown > 0) he.throwCooldown -= dt;
 
       if (he.onGround && he.jumpCooldown <= 0) {
         he.vy = -8.8;
@@ -1212,9 +1231,9 @@
         he.jumpCooldown = 75;
       }
 
-      he.vy += GRAVITY;
+      he.vy += GRAVITY * dt;
       if (he.vy > MAX_FALL) he.vy = MAX_FALL;
-      he.y += he.vy;
+      he.y += he.vy * dt;
       if (he.y >= 400) {
         if (!he.onGround && he.vy > 0) he.justLanded = true;
         he.y = 400;
@@ -1238,9 +1257,9 @@
     // ハンマー弾の更新（放物線）
     for (let i = hammers.length - 1; i >= 0; i--) {
       const hm = hammers[i];
-      hm.vy += GRAVITY * 0.85;
-      hm.x += hm.vx;
-      hm.y += hm.vy;
+      hm.vy += GRAVITY * 0.85 * dt;
+      hm.x += hm.vx * dt;
+      hm.y += hm.vy * dt;
       if (hm.y > H + 80 || hm.x < -100 || hm.x > worldWidth + 100) {
         hammers.splice(i, 1);
       }
@@ -1249,7 +1268,7 @@
     // 新敵：空から落とす敵（左右移動＋投下）
     for (const se of skyDropEnemies) {
       if (se.defeated) continue;
-      se.x += se.speed * se.dir;
+      se.x += se.speed * se.dir * dt;
       if (se.x <= se.minX) {
         se.x = se.minX;
         se.dir = 1;
@@ -1257,7 +1276,7 @@
         se.x = se.maxX;
         se.dir = -1;
       }
-      se.dropCooldown--;
+      se.dropCooldown -= dt;
       if (se.dropCooldown <= 0) {
         const sway = Math.sin((performance.now() / 220) + (se.seed || 0)) * 0.6;
         skyDrops.push({
@@ -1274,9 +1293,9 @@
     // 落下物更新
     for (let i = skyDrops.length - 1; i >= 0; i--) {
       const d = skyDrops[i];
-      d.vy += GRAVITY * 1.05;
-      d.x += d.vx;
-      d.y += d.vy;
+      d.vy += GRAVITY * 1.05 * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
       if (d.y > H + 120 || d.x < -200 || d.x > worldWidth + 200) {
         skyDrops.splice(i, 1);
       }
@@ -1299,9 +1318,9 @@
     // 星弾更新
     for (let i = starShots.length - 1; i >= 0; i--) {
       const shot = starShots[i];
-      shot.vy += GRAVITY * 0.4;
-      shot.x += shot.vx;
-      shot.y += shot.vy;
+      shot.vy += GRAVITY * 0.4 * dt;
+      shot.x += shot.vx * dt;
+      shot.y += shot.vy * dt;
       if (shot.y > H + 80 || shot.x < -120 || shot.x > worldWidth + 120) {
         starShots.splice(i, 1);
       }
@@ -1354,7 +1373,7 @@
     // 左右移動
     if (input.left)  { player.vx = -MOVE_SPEED; player.facing = -1; }
     else if (input.right) { player.vx = MOVE_SPEED; player.facing = 1; }
-    else { player.vx *= FRICTION; }
+    else { player.vx *= Math.pow(FRICTION, dt); }
 
     // オアシス（水）内は少し減速
     if (oasis) {
@@ -1363,7 +1382,7 @@
         player.x < oasis.x + oasis.w &&
         player.y > oasis.y &&
         player.y < oasis.y + oasis.h;
-      if (inOasis) player.vx *= 0.88;
+      if (inOasis) player.vx *= Math.pow(0.88, dt);
     }
 
     // ジャンプ発射（連続5回まで）
@@ -1378,16 +1397,28 @@
 
     // 重力（ジャンプ長押し中は弱重力でふわっと）
     if (input.jump && player.vy > 0) {
-      player.vy += FLOAT_GRAVITY;
+      player.vy += FLOAT_GRAVITY * dt;
       player.floating = true;
     } else {
-      player.vy += GRAVITY;
+      player.vy += GRAVITY * dt;
       player.floating = false;
+    }
+
+    // 砂漠の熱風ゾーン（上段滞在を難しくする）
+    for (const wz of windZones) {
+      if (
+        player.x > wz.x &&
+        player.x < wz.x + wz.w &&
+        player.y > wz.y &&
+        player.y < wz.y + wz.h
+      ) {
+        player.vy += wz.forceY * dt;
+      }
     }
     if (player.vy > MAX_FALL) player.vy = MAX_FALL;
 
     // X方向移動＆衝突解決
-    player.x += player.vx;
+    player.x += player.vx * dt;
 
     // ワールド端の透明な壁（通過不可）
     if (player.x - player.r < 0) {
@@ -1399,7 +1430,7 @@
       if (player.vx > 0) player.vx = 0;
     }
 
-    for (const p of platforms) {
+    for (const p of [...platforms, ...ceilingGates]) {
       if (p.disabled) continue;
       if (rectCircleCollide(p, player.x, player.y, player.r)) {
         if (player.vx > 0)      player.x = p.x - player.r;
@@ -1409,10 +1440,10 @@
     }
 
     // Y方向移動＆衝突解決
-    player.y += player.vy;
+    player.y += player.vy * dt;
     const wasInAir = !player.onGround;
     player.onGround = false;
-    for (const p of platforms) {
+    for (const p of [...platforms, ...ceilingGates]) {
       if (p.disabled) continue;
       if (rectCircleCollide(p, player.x, player.y, player.r)) {
         if (player.vy > 0) {
@@ -1529,24 +1560,24 @@
 
     // カメラ追従（遅延スムージング）
     const targetCamX = player.x - W / 2;
-    camX += (targetCamX - camX) * 0.1;
+    camX += (targetCamX - camX) * (1 - Math.pow(0.9, dt));
     camX = Math.max(0, Math.min(camX, worldWidth - W));
 
     // 砂漠専用の環境演出
     if (stageTheme === 'desert') {
-      updateSandParticles();
+      updateSandParticles(dt);
       if (
         player.onGround &&
         Math.abs(player.vx) > 0.55 &&
         nowMs >= sandStepCooldownUntilMs
       ) {
         playSe('sandStep');
-        sandStepCooldownUntilMs = nowMs + 210;
+        sandStepCooldownUntilMs = nowMs + 320;
       }
     }
 
     // まばたき
-    player.eyeBlink = (player.eyeBlink + 1) % 180;
+    player.eyeBlink = (player.eyeBlink + dt) % 180;
   }
 
   // ============================================
@@ -1919,6 +1950,26 @@
       drawPalmTree(oasis.x + oasis.w * 0.5, oasis.y + 2, 0.85);
     }
 
+    // 熱風ゾーンの可視化（薄い砂の帯）
+    for (const wz of windZones) {
+      ctx.fillStyle = 'rgba(232, 196, 122, 0.10)';
+      ctx.fillRect(wz.x, wz.y, wz.w, wz.h);
+      ctx.strokeStyle = 'rgba(190, 140, 70, 0.20)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const ly = wz.y + 12 + i * (wz.h / 5);
+        ctx.beginPath();
+        ctx.moveTo(wz.x + 8, ly);
+        ctx.quadraticCurveTo(
+          wz.x + wz.w * 0.5,
+          ly + Math.sin((Date.now() / 250) + i) * 6,
+          wz.x + wz.w - 8,
+          ly + 1
+        );
+        ctx.stroke();
+      }
+    }
+
     // プラットフォーム
     for (const p of platforms) {
       if (p.disabled) continue;
@@ -1967,6 +2018,20 @@
           ctx.stroke();
         }
       }
+    }
+
+    // 高さ制限ゲート（低い天井）
+    for (const g of ceilingGates) {
+      ctx.fillStyle = '#D9C28A';
+      ctx.fillRect(g.x, g.y, g.w, g.h);
+      ctx.fillStyle = '#B89B62';
+      ctx.fillRect(g.x, g.y + g.h - 6, g.w, 6);
+      ctx.strokeStyle = 'rgba(130, 103, 62, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(g.x + 8, g.y + 10);
+      ctx.lineTo(g.x + g.w - 8, g.y + 8);
+      ctx.stroke();
     }
 
     // サボテン障害物
@@ -2070,12 +2135,18 @@
   // ============================================
   // メインループ
   // ============================================
-  function loop() {
-    update();
+  let lastFrameTimeMs = performance.now();
+  function loop(nowMs = performance.now()) {
+    const rawDt = (nowMs - lastFrameTimeMs) / (1000 / 60);
+    // タブ復帰時などの極端なスパイクを防ぐ
+    const dt = Math.min(Math.max(rawDt, 0.5), 2.0);
+    lastFrameTimeMs = nowMs;
+
+    update(dt);
     draw();
     requestAnimationFrame(loop);
   }
-  loop();
+  requestAnimationFrame(loop);
 
   // Service Worker登録（PWA化用）
   if ('serviceWorker' in navigator) {
