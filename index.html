@@ -484,9 +484,7 @@
     voiceReady: false,
     voicePlayers: {},
     voiceLastPlayedAt: {},
-    activeVoiceType: '',
-    voiceQueue: [],
-    voiceQueueSet: {}
+    activeVoiceType: ''
   };
 
   const BGM_CHORDS = [
@@ -530,7 +528,6 @@
         if (audio.activeVoiceType === key) {
           audio.activeVoiceType = '';
         }
-        flushVoiceQueue();
       });
       audio.voicePlayers[key] = player;
     }
@@ -544,33 +541,18 @@
     return !!(activePlayer && !activePlayer.paused && !activePlayer.ended);
   }
 
-  function queueVoice(type) {
-    if (audio.voiceQueueSet[type]) return;
-    audio.voiceQueue.push(type);
-    audio.voiceQueueSet[type] = true;
-  }
-
-  function flushVoiceQueue() {
-    if (isVoicePlaying()) return;
-    while (audio.voiceQueue.length > 0) {
-      const nextType = audio.voiceQueue.shift();
-      delete audio.voiceQueueSet[nextType];
-      if (playVoice(nextType, true)) return;
-    }
-  }
-
-  function playVoice(type, fromQueue = false) {
+  function playVoice(type) {
     const player = audio.voicePlayers[type];
     if (!player) return false;
 
     const nowMs = performance.now();
     const cooldownMs = type === 'jump' ? 5000 : (type === 'fanfare' ? 800 : (type === 'fall' ? 300 : 120));
     const lastPlayedAt = audio.voiceLastPlayedAt[type] || 0;
-    if (!fromQueue && nowMs - lastPlayedAt < cooldownMs) return true;
+    if (nowMs - lastPlayedAt < cooldownMs) return true;
 
+    // ボイス再生中はキューしない。無音状態のときだけ新規再生する。
     if (isVoicePlaying()) {
-      queueVoice(type);
-      return true;
+      return false;
     }
 
     try {
