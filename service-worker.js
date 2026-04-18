@@ -1,10 +1,27 @@
 // Service Worker - URLを変えずに最新版反映しやすくする
-const CACHE_NAME = 'puni-adventure-v3';
+const CACHE_NAME = 'puni-adventure-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './assets/images/desert-stage3-bg.png'
+  './assets/images/desert-stage3-bg.png',
+  // プニ用（voice/ 直下）— 差し替え後にオフラインでも取り込めるよう明示
+  './assets/audio/voice/jump.wav',
+  './assets/audio/voice/star.wav',
+  './assets/audio/voice/life-up.wav',
+  './assets/audio/voice/enemy-hit.wav',
+  './assets/audio/voice/fall.wav',
+  './assets/audio/voice/enemy-defeat.wav',
+  './assets/audio/voice/clear.wav',
+  './assets/audio/voice/puni/attack.wav',
+  './assets/audio/voice/lunamon/jump.wav',
+  './assets/audio/voice/lunamon/star.wav',
+  './assets/audio/voice/lunamon/life-up.wav',
+  './assets/audio/voice/lunamon/enemy-hit.wav',
+  './assets/audio/voice/lunamon/fall.wav',
+  './assets/audio/voice/lunamon/enemy-defeat.wav',
+  './assets/audio/voice/lunamon/clear.wav',
+  './assets/audio/voice/lunamon/attack.wav'
 ];
 
 self.addEventListener('install', (event) => {

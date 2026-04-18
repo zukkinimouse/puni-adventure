@@ -584,6 +584,10 @@
   let skyDrops = [];
   let lifeItem = null;
   let starShots = [];
+  /** ルナモンしっぽ攻撃：この時刻まで当たり判定を有効にする */
+  let tailSwipeUntilMs = 0;
+  /** しっぽ攻撃のクールダウン終了時刻 */
+  let tailAttackCooldownUntilMs = 0;
   let hazards = [];
   let sandParticles = [];
   let sandStepCooldownUntilMs = 0;
@@ -606,6 +610,8 @@
   let currentStageName = '';
   let playerSkin = 'lunamon';
   const MAX_CONSECUTIVE_JUMPS = 2;
+  const LUNAMON_TAIL_SWIPE_MS = 200;
+  const LUNAMON_TAIL_COOLDOWN_MS = 520;
 
   function getSkinLabel() {
     return playerSkin === 'puni' ? 'プニ' : 'ルナモン';
@@ -623,8 +629,11 @@
 
   function setPlayerSkin(skin) {
     playerSkin = skin === 'puni' ? 'puni' : 'lunamon';
+    // 切替時にしっぽ判定の中途半端な状態を残さない
+    tailSwipeUntilMs = 0;
     updateCharacterButtons();
     updateStatusLabel();
+    updateHud();
   }
 
   // ============================================
@@ -646,7 +655,8 @@
     bgmStep: 0,
     bgmVariant: 'stage1',
     voiceReady: false,
-    voicePlayers: {},
+    // puni / lunamon で別ファイルを再生（各キーに Audio を1本ずつ）
+    voicePlayers: { puni: {}, lunamon: {} },
     voiceLastPlayedAt: {}
   };
 
@@ -668,6 +678,12 @@
   const ARABIAN_BASS = [138.59, 146.83, 138.59, 130.81];
   const BGM_MASTER_VOLUME = 2.35;
   const VOICE_MASTER_VOLUME = 0.42;
+  // ---------------------------------------------------------------------------
+  // ボイスURLのルール（プニとルナモンでファイルを混在させない）
+  // - プニ: voice/ 直下の wav（従来）＋ attack だけ voice/puni/attack.wav
+  // - ルナモン: 常に voice/lunamon/*.wav（直下や puni/ を参照しない）
+  // 素材差し替えは assets/audio/voice/README.txt を参照
+  // ---------------------------------------------------------------------------
   const VOICE_SOURCES = {
     jump: 'assets/audio/voice/jump.wav',
     star: 'assets/audio/voice/star.wav',
@@ -675,29 +691,58 @@
     enemy: 'assets/audio/voice/enemy-hit.wav',
     fall: 'assets/audio/voice/fall.wav',
     enemyDefeat: 'assets/audio/voice/enemy-defeat.wav',
-    fanfare: 'assets/audio/voice/clear.wav'
+    fanfare: 'assets/audio/voice/clear.wav',
+    attack: 'assets/audio/voice/puni/attack.wav'
+  };
+
+  // ルナモン専用（キーは VOICE_SOURCES と同一。URL は lunamon/ のみ）
+  const VOICE_SOURCES_LUNAMON = {
+    jump: 'assets/audio/voice/lunamon/jump.wav',
+    star: 'assets/audio/voice/lunamon/star.wav',
+    life: 'assets/audio/voice/lunamon/life-up.wav',
+    enemy: 'assets/audio/voice/lunamon/enemy-hit.wav',
+    fall: 'assets/audio/voice/lunamon/fall.wav',
+    enemyDefeat: 'assets/audio/voice/lunamon/enemy-defeat.wav',
+    fanfare: 'assets/audio/voice/lunamon/clear.wav',
+    attack: 'assets/audio/voice/lunamon/attack.wav'
   };
 
   function initVoicePlayers() {
     if (audio.voiceReady) return;
-    for (const [key, src] of Object.entries(VOICE_SOURCES)) {
-      audio.voicePlayers[key] = null;
+    for (const key of Object.keys(VOICE_SOURCES)) {
       audio.voiceLastPlayedAt[key] = 0;
-      const player = new Audio(src);
-      player.preload = 'auto';
-      const baseVolume = key === 'fanfare' ? 0.8 : 0.72;
-      player.volume = baseVolume * VOICE_MASTER_VOLUME;
-      audio.voicePlayers[key] = player;
+      const baseVolume = key === 'fanfare' ? 0.8 : (key === 'attack' ? 0.75 : 0.72);
+      // プニ用 Audio は VOICE_SOURCES のURLのみ（lunamon フォルダを参照しない）
+      const p = new Audio(VOICE_SOURCES[key]);
+      p.preload = 'auto';
+      p.volume = baseVolume * VOICE_MASTER_VOLUME;
+      audio.voicePlayers.puni[key] = p;
+
+      // ルナモン用は VOICE_SOURCES_LUNAMON のみ。未定義キーだけプニURLにフォールバック
+      const lunSrc = VOICE_SOURCES_LUNAMON[key] || VOICE_SOURCES[key];
+      const l = new Audio(lunSrc);
+      l.preload = 'auto';
+      l.volume = baseVolume * VOICE_MASTER_VOLUME;
+      audio.voicePlayers.lunamon[key] = l;
     }
     audio.voiceReady = true;
   }
 
   function playVoice(type) {
-    const player = audio.voicePlayers[type];
+    // 初回が攻撃など playSe より先に来る場合でも Audio を用意する
+    initVoicePlayers();
+    // スキンごとに別インスタンスなので、再生URLがプニとルナモンで混ざらない
+    const skin = playerSkin === 'lunamon' ? 'lunamon' : 'puni';
+    const player = audio.voicePlayers[skin][type];
     if (!player) return false;
 
     const nowMs = performance.now();
-    const cooldownMs = type === 'jump' ? 5000 : (type === 'fanfare' ? 800 : (type === 'fall' ? 300 : 120));
+    const cooldownMs =
+      type === 'jump' ? 5000 :
+      type === 'fanfare' ? 800 :
+      type === 'fall' ? 300 :
+      type === 'attack' ? 420 :
+      120;
     const lastPlayedAt = audio.voiceLastPlayedAt[type] || 0;
     if (nowMs - lastPlayedAt < cooldownMs) return true;
 
@@ -834,8 +879,10 @@
   function playSe(type) {
     ensureAudioContext();
 
-    // 全イベントでボイスとSEを重ねて再生する
-    playVoice(type);
+    // しっぽSEは攻撃ボイスを別途再生するため、ここではボイスを掛けない
+    if (type !== 'tailSwipe') {
+      playVoice(type);
+    }
 
     if (!audio.ctx) return;
     const now = audio.ctx.currentTime;
@@ -943,6 +990,19 @@
       return;
     }
 
+    if (type === 'tailSwipe') {
+      // しっぽを振る短いスウィープ音（ボイスは無し）
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.09);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.07, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+      osc.start(now);
+      osc.stop(now + 0.12);
+      return;
+    }
+
     if (type === 'fanfare') {
       const notes = [523.25, 659.25, 783.99, 1046.5];
       for (let i = 0; i < notes.length; i++) {
@@ -1043,6 +1103,8 @@
     });
     hammers = [];
     starShots = [];
+    tailSwipeUntilMs = 0;
+    tailAttackCooldownUntilMs = 0;
     sandStepCooldownUntilMs = 0;
     sandParticles = [];
     platforms.forEach((p) => {
@@ -1065,7 +1127,14 @@
   }
 
   function updateHud() {
-    scoreEl.textContent = '💎 ' + collected + ' / ' + stars.length + '  ⭐弾 ' + starAmmo;
+    const base = '💎 ' + collected + ' / ' + stars.length;
+    if (playerSkin === 'lunamon') {
+      const nowMs = performance.now();
+      const ready = nowMs >= tailAttackCooldownUntilMs;
+      scoreEl.textContent = base + (ready ? '  🌙しっぽ OK' : '  🌙しっぽ …');
+    } else {
+      scoreEl.textContent = base + '  ⭐弾 ' + starAmmo;
+    }
     livesEl.textContent = '❤️ ' + lives;
   }
 
@@ -1209,6 +1278,130 @@
     const ny = Math.max(rect.y, Math.min(cy, rect.y + rect.h));
     const dx = cx - nx, dy = cy - ny;
     return (dx * dx + dy * dy) < (cr * cr);
+  }
+
+  // 矩形同士の重なり（しっぽ当たり判定用）
+  function rectRectsOverlap(a, b) {
+    return !(
+      a.x + a.w <= b.x ||
+      b.x + b.w <= a.x ||
+      a.y + a.h <= b.y ||
+      b.y + b.h <= a.y
+    );
+  }
+
+  // ルナモン：前方に振るしっぽの当たり矩形（ワールド座標）
+  function getLunamonTailHitbox() {
+    const tailW = 54;
+    const tailH = 36;
+    const gap = 6;
+    const y = player.y - tailH * 0.5;
+    if (player.facing === 1) {
+      return { x: player.x + player.r + gap, y, w: tailW, h: tailH };
+    }
+    return { x: player.x - player.r - tailW - gap, y, w: tailW, h: tailH };
+  }
+
+  // ルナモン：しっぽ攻撃のリッチ描画（弧スイープ＋帯グラデ＋きらめき）
+  function drawLunamonTailSwipeEffect(nowMs) {
+    if (playerSkin !== 'lunamon' || gameWon || nowMs >= tailSwipeUntilMs) return;
+    const duration = LUNAMON_TAIL_SWIPE_MS;
+    const elapsed = tailSwipeUntilMs - nowMs;
+    const u = Math.max(0, Math.min(1, 1 - elapsed / duration));
+
+    const b = getLunamonTailHitbox();
+
+    // 前方ヒット帯：グラデーションで奥から手前へ光が走るイメージ
+    const gx0 = player.facing === 1 ? b.x : b.x + b.w;
+    const gx1 = player.facing === 1 ? b.x + b.w : b.x;
+    const lg = ctx.createLinearGradient(gx0, b.y + b.h * 0.5, gx1, b.y + b.h * 0.5);
+    lg.addColorStop(0, 'rgba(109, 105, 168, 0)');
+    lg.addColorStop(0.35, `rgba(139, 136, 198, ${0.22 * (1 - u * 0.5)})`);
+    lg.addColorStop(0.55, `rgba(220, 210, 255, ${0.35 * (1 - u * 0.35)})`);
+    lg.addColorStop(0.75, `rgba(255, 253, 208, ${0.28 * (1 - u * 0.45)})`);
+    lg.addColorStop(1, 'rgba(255, 253, 208, 0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+    // 弧のスイープ（プレイヤー基準・向きで左右反転）
+    ctx.save();
+    ctx.translate(player.x, player.y + 2);
+    ctx.scale(player.facing, 1);
+
+    const ax = player.r + 14;
+    const ay = -4;
+    const baseR = 46;
+
+    // 残像風にレイヤーをずらして重ねる
+    for (let layer = 0; layer < 4; layer++) {
+      const delay = layer * 0.11;
+      const lu = Math.max(0, Math.min(1, u - delay));
+      const arcStart = -Math.PI * 0.62 + lu * Math.PI * 0.72;
+      const arcEnd = arcStart + Math.PI * 0.34;
+      ctx.beginPath();
+      ctx.arc(ax, ay, baseR + layer * 2.8, arcStart, arcEnd);
+      const alpha = (0.26 - layer * 0.055) * (1 - u * 0.42);
+      ctx.strokeStyle = layer === 0
+        ? `rgba(255, 253, 208, ${0.52 + 0.18 * (1 - u)})`
+        : `rgba(139, 136, 198, ${alpha})`;
+      ctx.lineWidth = 9 - layer * 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    // 弧上のきらめき
+    const luSpark = u;
+    const s0 = -Math.PI * 0.62 + luSpark * Math.PI * 0.72;
+    const s1 = s0 + Math.PI * 0.34;
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.42 * (1 - u * 0.75)})`;
+    for (let k = 0; k < 9; k++) {
+      const ang = s0 + (k / 8) * (s1 - s0);
+      const rr = baseR + (k % 3) * 2.2 + Math.sin(nowMs / 40 + k) * 1.2;
+      const px = ax + Math.cos(ang) * rr;
+      const py = ay + Math.sin(ang) * rr;
+      ctx.beginPath();
+      ctx.arc(px, py, 1.2 + (k % 2) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 外縁のパッとしたリムライト
+    ctx.beginPath();
+    const rimLu = Math.max(0, Math.min(1, u - 0.05));
+    const r0 = -Math.PI * 0.62 + rimLu * Math.PI * 0.72;
+    const r1 = r0 + Math.PI * 0.34;
+    ctx.arc(ax, ay, baseR + 1, r0, r1);
+    ctx.strokeStyle = `rgba(255, 253, 208, ${0.35 * (1 - u)})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ルナモンしっぽ：短時間ヒットボックスで敵を撃破
+  function applyLunamonTailHits(nowMs) {
+    if (playerSkin !== 'lunamon' || gameWon || nowMs >= tailSwipeUntilMs) return;
+    const box = getLunamonTailHitbox();
+    for (const e of enemies) {
+      if (e.defeated) continue;
+      if (rectRectsOverlap(box, e)) {
+        e.defeated = true;
+        playSe('enemyDefeat');
+      }
+    }
+    for (const he of hammerEnemies) {
+      if (he.defeated) continue;
+      if (rectRectsOverlap(box, he)) {
+        he.defeated = true;
+        playSe('enemyDefeat');
+      }
+    }
+    for (const se of skyDropEnemies) {
+      if (se.defeated) continue;
+      if (rectRectsOverlap(box, se)) {
+        se.defeated = true;
+        playSe('enemyDefeat');
+      }
+    }
   }
 
   function drawTiledBackground(image, speed) {
@@ -1389,17 +1582,29 @@
       }
     }
 
-    // 星弾発射（獲得済みの星を消費）
-    if (input.attackPressed && starAmmo > 0) {
-      starShots.push({
-        x: player.x + player.facing * (player.r + 6),
-        y: player.y - 2,
-        vx: player.facing * 7.4,
-        vy: -1.6,
-        r: 7
-      });
-      starAmmo--;
-      updateHud();
+    // 攻撃：プニは星弾、ルナモンはしっぽ（星は消費しない）
+    if (input.attackPressed) {
+      if (playerSkin === 'lunamon') {
+        if (!gameWon && nowMs >= tailAttackCooldownUntilMs) {
+          playVoice('attack');
+          tailSwipeUntilMs = nowMs + LUNAMON_TAIL_SWIPE_MS;
+          tailAttackCooldownUntilMs = nowMs + LUNAMON_TAIL_COOLDOWN_MS;
+          playSe('tailSwipe');
+          updateHud();
+        }
+      } else if (starAmmo > 0) {
+        playVoice('attack');
+        starShots.push({
+          x: player.x + player.facing * (player.r + 6),
+          y: player.y - 2,
+          vx: player.facing * 7.4,
+          vy: -1.6,
+          r: 11,
+          bornAt: nowMs
+        });
+        starAmmo--;
+        updateHud();
+      }
     }
     input.attackPressed = false;
 
@@ -1554,6 +1759,9 @@
     // スクイッシュ減衰
     player.squish *= 0.85;
 
+    // ルナモン：しっぽ攻撃の当たり判定（移動・衝突解決後の位置で判定）
+    applyLunamonTailHits(nowMs);
+
     // 画面外に落ちたらリセット
     if (player.y > H + 100) {
       onFallDamage();
@@ -1662,6 +1870,11 @@
         playSe('sandStep');
         sandStepCooldownUntilMs = nowMs + 320;
       }
+    }
+
+    // ルナモン：しっぽクールダウン表示を毎フレーム更新（OK表示のタイミング用）
+    if (playerSkin === 'lunamon' && gameStarted && !gameWon) {
+      updateHud();
     }
 
     // まばたき
@@ -1971,6 +2184,88 @@
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+  }
+
+  // プニの星弾専用：大きめ＋尾・グロー・グラデ（マップの星とは別描画）
+  function drawStarShot(shot) {
+    const nowMs = performance.now();
+    const age = typeof shot.bornAt === 'number' ? nowMs - shot.bornAt : 999;
+    const spawnPulse = age < 150 ? 1 + (1 - age / 150) * 0.2 : 1;
+    const base = shot.r / 11;
+    const R1 = 15 * base * spawnPulse;
+    const R2 = 6 * base * spawnPulse;
+    const rot = (Date.now() / 380) % (Math.PI * 2);
+
+    const spd = Math.hypot(shot.vx, shot.vy);
+    const nx = spd > 0.08 ? -shot.vx / spd : -1;
+    const ny = spd > 0.08 ? -shot.vy / spd : 0;
+
+    ctx.save();
+    ctx.translate(shot.x, shot.y);
+
+    // 軌跡尾（移動の逆向きに粒を並べる）
+    for (let t = 0; t < 6; t++) {
+      const ax = nx * (5 + t * 6.5);
+      const ay = ny * (5 + t * 6.5);
+      const alpha = (0.16 - t * 0.022) * (0.55 + Math.min(1, spd / 11));
+      ctx.fillStyle = `rgba(255, 225, 140, ${Math.max(0, alpha)})`;
+      ctx.beginPath();
+      ctx.arc(ax, ay, 3.6 - t * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.rotate(rot);
+
+    // 外周グロー（やや大きい星形シルエット）
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * (R1 + 5), Math.sin(a) * (R1 + 5));
+      const a2 = ((i * 2 + 1) * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a2) * (R2 + 2.5), Math.sin(a2) * (R2 + 2.5));
+    }
+    ctx.closePath();
+    const glowGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, R1 + 10);
+    glowGrad.addColorStop(0, 'rgba(255, 255, 235, 0.5)');
+    glowGrad.addColorStop(0.4, 'rgba(255, 210, 100, 0.28)');
+    glowGrad.addColorStop(1, 'rgba(255, 160, 40, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fill();
+
+    // 本体（放射グラデ＋縁）
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * R1, Math.sin(a) * R1);
+      const a2 = ((i * 2 + 1) * Math.PI) / 5 - Math.PI / 2;
+      ctx.lineTo(Math.cos(a2) * R2, Math.sin(a2) * R2);
+    }
+    ctx.closePath();
+    const bodyGrad = ctx.createRadialGradient(-R1 * 0.18, -R1 * 0.22, 0.5, 0, 0, R1 * 1.15);
+    bodyGrad.addColorStop(0, '#FFFCED');
+    bodyGrad.addColorStop(0.32, '#FFEC8B');
+    bodyGrad.addColorStop(0.65, '#FFD93D');
+    bodyGrad.addColorStop(1, '#D9A008');
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160, 100, 0, 0.9)';
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // 頂点付近のきらめき
+    for (let k = 0; k < 7; k++) {
+      const a = -Math.PI / 2 + (k / 6) * Math.PI * 0.95;
+      const rr = R1 * 0.9;
+      const px = Math.cos(a) * rr;
+      const py = Math.sin(a) * rr;
+      const tw = 0.35 + 0.25 * Math.sin(nowMs / 45 + k * 1.7);
+      ctx.fillStyle = `rgba(255, 255, 255, ${tw})`;
+      ctx.beginPath();
+      ctx.arc(px, py, 1.2 + (k % 2) * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 
@@ -2388,8 +2683,11 @@
       drawSkyDrop(d);
     }
     for (const shot of starShots) {
-      drawStar(shot.x, shot.y);
+      drawStarShot(shot);
     }
+
+    // ルナモン：しっぽ攻撃エフェクト（前方判定と連動）
+    drawLunamonTailSwipeEffect(performance.now());
 
     // プレイヤー
     drawPlayer(player.x, player.y);
