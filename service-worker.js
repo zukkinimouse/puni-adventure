@@ -1,10 +1,12 @@
 // Service Worker - URLを変えずに最新版反映しやすくする
-const CACHE_NAME = 'puni-adventure-v5';
+const CACHE_NAME = 'puni-adventure-v10';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './assets/images/desert-stage3-bg.png',
+  './assets/images/boss-tretton.png',
+  './assets/images/boss-arena-bg.png',
   // プニ用（voice/ 直下）— 差し替え後にオフラインでも取り込めるよう明示
   './assets/audio/voice/jump.wav',
   './assets/audio/voice/star.wav',
@@ -21,7 +23,9 @@ const ASSETS = [
   './assets/audio/voice/lunamon/fall.wav',
   './assets/audio/voice/lunamon/enemy-defeat.wav',
   './assets/audio/voice/lunamon/clear.wav',
-  './assets/audio/voice/lunamon/attack.wav'
+  './assets/audio/voice/lunamon/attack.wav',
+  './assets/audio/bgm/README.txt',
+  './assets/audio/bgm/boss.mp3'
 ];
 
 self.addEventListener('install', (event) => {

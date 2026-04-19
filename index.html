@@ -92,8 +92,40 @@
     background: rgba(255,240,170,0.72);
     border-color: rgba(255,205,90,0.95);
     color: #7A5B00;
+    flex-direction: column;
+    line-height: 1.05;
+    text-align: center;
+    padding: 2px;
   }
   #btn-attack:active { background: rgba(255,240,170,0.9); }
+  /* ルナモン：しっぽクールダウン中 */
+  #btn-attack.attack-cooldown {
+    background: rgba(168, 168, 178, 0.72);
+    border-color: rgba(130, 130, 140, 0.9);
+    color: #3a3a44;
+    font-size: 10px;
+  }
+  #btn-attack.attack-cooldown:active {
+    background: rgba(150, 150, 160, 0.85);
+  }
+  #btn-attack .atk-line1 {
+    font-size: 9px;
+    font-weight: 700;
+  }
+  #btn-attack .atk-cd {
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 1px;
+  }
+  /* プニ：星弾0のとき */
+  #btn-attack.attack-disabled {
+    background: rgba(168, 168, 178, 0.62);
+    border-color: rgba(130, 130, 140, 0.85);
+    color: #4a4a55;
+  }
+  #btn-attack.attack-disabled:active {
+    background: rgba(155, 155, 165, 0.78);
+  }
 
   #message {
     position: absolute; top: 50%; left: 50%;
@@ -203,6 +235,126 @@
   }
   .char-btn:active { transform: scale(0.98); }
 
+  #game-over-panel {
+    position: absolute; inset: 0;
+    background: rgba(10, 8, 22, 0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 35;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+  }
+  #game-over-panel .go-inner {
+    background: rgba(255, 252, 248, 0.97);
+    border-radius: 16px;
+    padding: 22px 20px;
+    width: min(400px, 90vw);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  #game-over-panel h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #3d2a5c;
+  }
+  #game-over-panel p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.45;
+  }
+  #game-over-panel .go-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .go-btn {
+    border: 2px solid #8b7ab8;
+    background: linear-gradient(180deg, #f0eaff, #e4dcff);
+    color: #3a2f66;
+    border-radius: 12px;
+    padding: 12px 18px;
+    min-height: 48px;
+    min-width: 160px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .go-btn:active { transform: scale(0.98); }
+  .go-btn.secondary {
+    border-color: #aaa;
+    background: #f5f5f5;
+    color: #444;
+  }
+
+  /* ゲーム中ポーズ（全画面オーバーレイ） */
+  #pause-panel {
+    position: absolute; inset: 0;
+    background: rgba(12, 10, 28, 0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    flex-direction: column;
+    padding: 20px;
+  }
+  #pause-panel .pause-inner {
+    background: rgba(255, 252, 250, 0.98);
+    border-radius: 16px;
+    padding: 22px 20px;
+    width: min(400px, 90vw);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.38);
+    text-align: center;
+  }
+  #pause-panel h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #3d2a5c;
+  }
+  #pause-panel p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.45;
+  }
+  #pause-panel .pause-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  /* 画面上部のトップバー（絶対配置）と重ならないよう、ゲームエリア上端より下げる */
+  #btn-pause-open {
+    position: absolute;
+    top: calc(46px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    z-index: 12;
+    width: 48px;
+    height: 48px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.5);
+    color: #333;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  #btn-pause-open:active {
+    transform: scale(0.96);
+    background: rgba(255,255,255,0.75);
+  }
+
   #rotate-hint {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.85);
@@ -254,6 +406,9 @@
       right: 10px;
       bottom: calc(8px + env(safe-area-inset-bottom));
     }
+    #btn-pause-open {
+      top: calc(44px + env(safe-area-inset-top, 0px));
+    }
   }
 </style>
 </head>
@@ -273,12 +428,12 @@
     <div id="stage-select">
       <div class="panel">
         <h2>ステージをえらんでね</h2>
-        <p>ステージ2は敵が増えて足場も厳しめです / ステージ3は砂漠です / ステージ4は仮設計です</p>
+        <p>ステージ2は敵が増えて足場も厳しめです / ステージ3は砂漠です / ステージ4はボス戦です</p>
         <div class="row">
           <button id="stage1-btn" class="stage-btn">ステージ1（ノーマル）</button>
           <button id="stage2-btn" class="stage-btn">ステージ2（ハード）</button>
           <button id="stage3-btn" class="stage-btn">ステージ3（砂漠）</button>
-          <button id="stage4-btn" class="stage-btn">ステージ4（仮設計）</button>
+          <button id="stage4-btn" class="stage-btn">ステージ4（ボス：トレットン）</button>
         </div>
         <div class="char-row">
           <button id="char-puni-btn" class="char-btn">キャラ: プニ</button>
@@ -295,6 +450,30 @@
     <div id="message"></div>
     <div id="clear-actions">
       <button id="btn-back-stage-select">ステージ選択へ戻る</button>
+    </div>
+
+    <div id="game-over-panel">
+      <div class="go-inner">
+        <h2>ゲームオーバー</h2>
+        <p>どうする？</p>
+        <div class="go-row">
+          <button type="button" id="btn-go-retry" class="go-btn">やり直す</button>
+          <button type="button" id="btn-go-stage" class="go-btn secondary">ステージ選択へ</button>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" id="btn-pause-open" aria-label="一時停止">Ⅱ</button>
+
+    <div id="pause-panel">
+      <div class="pause-inner">
+        <h2>ポーズ</h2>
+        <p>つづけるか、ステージせんたくに戻るかをえらんでね</p>
+        <div class="pause-row">
+          <button type="button" id="btn-pause-resume" class="go-btn">つづける</button>
+          <button type="button" id="btn-pause-stage" class="go-btn secondary">ステージ選択へ</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -317,6 +496,9 @@
   const messageEl = document.getElementById('message');
   const clearActionsEl = document.getElementById('clear-actions');
   const backStageSelectBtn = document.getElementById('btn-back-stage-select');
+  const gameOverPanelEl = document.getElementById('game-over-panel');
+  const gameOverRetryBtn = document.getElementById('btn-go-retry');
+  const gameOverStageBtn = document.getElementById('btn-go-stage');
   const stageSelectEl = document.getElementById('stage-select');
   const stage1Btn = document.getElementById('stage1-btn');
   const stage2Btn = document.getElementById('stage2-btn');
@@ -324,6 +506,11 @@
   const stage4Btn = document.getElementById('stage4-btn');
   const charPuniBtn = document.getElementById('char-puni-btn');
   const charLunamonBtn = document.getElementById('char-lunamon-btn');
+  const pausePanelEl = document.getElementById('pause-panel');
+  const pauseOpenBtn = document.getElementById('btn-pause-open');
+  const pauseResumeBtn = document.getElementById('btn-pause-resume');
+  const pauseStageBtn = document.getElementById('btn-pause-stage');
+  const attackBtn = document.getElementById('btn-attack');
 
   // ============================================
   // 定数・設定
@@ -501,7 +688,8 @@
         {x: 1360, y: 224, w: 88, h: 18, kind: 'crumbling', crumbleDelayMs: 560},
         {x: 1760, y: 294, w: 86, h: 18, kind: 'sinking', sinkSpeed: 0.36, maxSink: 86},
         {x: 2140, y: 246, w: 86, h: 18},
-        {x: 2480, y: 238, w: 96, h: 18},
+        // 浮遊7番目：ジャンプライン調整のため少し左へ
+        {x: 2448, y: 238, w: 96, h: 18},
         {x: 2560, y: 272, w: 92, h: 18, kind: 'crumbling', crumbleDelayMs: 520},
         {x: 2920, y: 274, w: 112, h: 18, kind: 'sinking', sinkSpeed: 0.33, maxSink: 78}
       ],
@@ -547,19 +735,20 @@
 
   function createStage4() {
     return {
-      worldWidth: 1800,
-      theme: 'normal',
+      // 固定画面アリーナ（論理幅＝画面幅）
+      worldWidth: W,
+      theme: 'boss',
       holes: [],
       oasis: null,
       ceilingGates: [],
       windZones: [],
-      // 仮設計: 地面のみのシンプル構成
       platforms: [
-        {x: 0, y: 420, w: 1800, h: 30}
+        { x: 0, y: 420, w: W, h: 30 }
       ],
       stars: [],
       lifeItem: null,
-      goal: {x: 1720, y: 380, w: 40, h: 40},
+      // ゴール接触クリアは stage4 では無効（ダミー座標）
+      goal: { x: -500, y: 0, w: 1, h: 1 },
       enemies: [],
       hammerEnemies: [],
       skyDropEnemies: [],
@@ -597,6 +786,18 @@
   let desertBgReady = false;
   DESERT_BG.onload = () => { desertBgReady = true; };
 
+  // ステージ4ボス：Gemini 生成スプライト（右半分＝木本体）
+  const BOSS_SHEET = new Image();
+  BOSS_SHEET.src = 'assets/images/boss-tretton.png';
+  let bossSheetReady = false;
+  BOSS_SHEET.onload = () => { bossSheetReady = true; };
+
+  // ステージ4ボスアリーナ背景（森の夜・差し替え可）
+  const BOSS_ARENA_BG = new Image();
+  BOSS_ARENA_BG.src = 'assets/images/boss-arena-bg.png';
+  let bossArenaBgReady = false;
+  BOSS_ARENA_BG.onload = () => { bossArenaBgReady = true; };
+
   let camX = 0;
   let collected = 0;
   let gameWon = false;
@@ -605,13 +806,91 @@
   let jumpCount = 0;
   let invincibleUntilMs = 0;
   let lives = 1;
+  /** ゲームオーバー時：操作停止＆選択 UI 表示中 */
+  let gameOverMenuActive = false;
+  /** ボス撃破演出中の消滅 SE 用（最後に鳴らした時刻） */
+  let bossDefeatVanishSeMs = 0;
   let starAmmo = 0;
   let gameStarted = false;
+  /** ポーズ中は更新を止め、BGM タイマーと Web Audio を一時停止する */
+  let gamePaused = false;
   let currentStageName = '';
+  /** ロジック分岐用（'stage1'〜'stage4'） */
+  let currentStageId = '';
   let playerSkin = 'lunamon';
   const MAX_CONSECUTIVE_JUMPS = 2;
   const LUNAMON_TAIL_SWIPE_MS = 200;
   const LUNAMON_TAIL_COOLDOWN_MS = 520;
+
+  const BOSS_MAX_HP = 10;
+  /** 撃破演出の長さ（ms）— 点滅しながら消える */
+  const BOSS_DEFEAT_ANIM_MS = 2600;
+  /** ボス葉っぱ弾の当たり判定半径（描画スケールに合わせる） */
+  const BOSS_LEAF_HIT_R = 10;
+  /** 葉攻撃：1 枚ごとの発射間隔（ms）— 連射は従来どおり 0.3 秒 */
+  const BOSS_LEAF_BURST_INTERVAL_MS = 150;
+  /** 葉ウェーブ1終了〜ウェーブ2開始までの間（ms） */
+  const BOSS_LEAF_WAVE_GAP_MS = 500;
+  /** 予備動作の基準時間（ms）— HP 半分以下で 1/1.3 倍に短縮 */
+  const BOSS_WU_APPLE_MS = 920;
+  const BOSS_WU_LEAF_MS = 780;
+  const BOSS_WU_BRANCH_MS = 860;
+  /** パターン終了後のクールダウン */
+  const BOSS_PATTERN_COOLDOWN_MIN = 1500;
+  const BOSS_PATTERN_COOLDOWN_MAX = 2800;
+  let bossHp = BOSS_MAX_HP;
+  /** 0=戦闘中 1=撃破演出 2=クリア済み処理後 */
+  let bossDefeatPhase = 0;
+  let bossDefeatUntilMs = 0;
+  /** 被弾後の無敵終了時刻（星弾は当たってもダメージなしで消える） */
+  let bossInvincibleUntilMs = 0;
+  /** 次の攻撃パターンに入るまでの待機終了時刻 */
+  let bossNextPatternAtMs = 0;
+  /**
+   * ボス攻撃AI: wait | … | leaf1 | leaf_gap | leaf2 | leaf3? | branch
+   * （branch 中は bossBranchStep で撃ったウェーブ数を数える）
+   */
+  let bossCombatMode = 'wait';
+  let bossCombatUntilMs = 0;
+  let bossAppleSpawnsDone = 0;
+  let bossNextAppleSpawnAtMs = 0;
+  /** 葉攻撃：BOSS_LEAF_BURST_INTERVAL_MS 間隔で撃った発数（各ウェーブで 0→3） */
+  let bossLeafBurstCount = 0;
+  let bossLeafBurstNextAtMs = 0;
+  /** leaf_gap 終了後に入るウェーブ番号（2 または 3） */
+  let bossLeafWaveAfterGap = 2;
+  /** 直前に使った攻撃（リンゴ/葉/枝）— ランダムでも連続禁止用 */
+  let bossLastAttackKind = null;
+  /** 枝攻撃: execute ごとに +1（根が消えたとき cap と比較） */
+  let bossBranchStep = 0;
+  let bossApples = [];
+  let bossLeaves = [];
+  let bossRoots = [];
+  let bossStarPickups = [];
+  let bossHealPickup = null;
+  let bossNextStarAtMs = 0;
+  let bossNextHealAtMs = 0;
+  /** しっぽ1スワイプにつきボスへ与えるダメージは1回まで */
+  let bossTailDamagePending = false;
+  /** ボス戦スクリーンシェイク終了時刻 */
+  let bossScreenShakeUntilMs = 0;
+  let bossScreenShakeStartMs = 0;
+  /** シェイクの最大振幅（px） */
+  let bossScreenShakeAmp = 0;
+  /** ヒット時パーティクル（葉・光） */
+  let bossHitParticles = [];
+  /** 強化フェーズ突入時の赤フラッシュ終了時刻 */
+  let bossDesperationFxUntilMs = 0;
+  /** 強化フェーズ案内バナー表示の終了時刻 */
+  let bossDesperationBannerUntilMs = 0;
+  /** 幹前張り付き時：次に強風が吹く時刻（0＝未チャージ） */
+  let bossInnerGustAtMs = 0;
+  /** 星・回復出現時のリッチ演出（リング・粒子・フラッシュ） */
+  let bossPickupSpawnFx = [];
+  /** 枝攻撃：地面に出す前の赤マーカー { x, w, untilMs } */
+  let bossBranchGroundMarks = [];
+  /** 枝攻撃：警告終了後に生成する根データ */
+  let bossBranchPendingSpawn = null;
 
   function getSkinLabel() {
     return playerSkin === 'puni' ? 'プニ' : 'ルナモン';
@@ -647,6 +926,7 @@
 
   // ============================================
   // サウンド（SE / BGM）
+  // BGM ファイル置き場: assets/audio/bgm/（中身と命名は同フォルダの README.txt 参照）
   // ============================================
   const audio = {
     ctx: null,
@@ -654,6 +934,10 @@
     bgmTimer: null,
     bgmStep: 0,
     bgmVariant: 'stage1',
+    /** ボス戦のみ HTML の Audio でループ再生（assets/audio/bgm/boss.mp3） */
+    bossBgmAudio: null,
+    /** 合成 SE を destination へ送る前のマスター（音量調整用） */
+    seOutput: null,
     voiceReady: false,
     // puni / lunamon で別ファイルを再生（各キーに Audio を1本ずつ）
     voicePlayers: { puni: {}, lunamon: {} },
@@ -676,7 +960,23 @@
     [261.63, 329.63, 392.00]  // C
   ];
   const ARABIAN_BASS = [138.59, 146.83, 138.59, 130.81];
-  const BGM_MASTER_VOLUME = 2.35;
+  /** プロシージャル BGM の基準ゲイン（全体音量のつまみ）— ユーザー要望で 0.05 下げ */
+  const BGM_MASTER_VOLUME = 2.0;
+  /** プロシージャル BGM 用ゲインに掛ける倍率（全体をさらに下げる） */
+  const BGM_TONE_GAIN_MULT = 0.9;
+  /** 合成 SE マスターへの倍率（Web Audio の seOutput に掛かる） */
+  const SE_GAIN_MULT = 4.38;
+  /** ボス戦 MP3 の音量（0〜1）— 基本 BGM と同様に 0.05 下げ、SE を聞かせるため低め */
+  const BOSS_BGM_VOLUME = 0.15;
+  /**
+   * ステージ4（ボス戦）では合成 SE をまとめて持ち上げる（BGM がファイル再生で大きいため）
+   * playSe ごとに seOutput.gain に掛ける
+   */
+  function bossSefxBk() {
+    return currentStageId === 'stage4' ? 4.92 : 1;
+  }
+  /** ボス戦ファイルBGM（元ファイル名: Throne of Black Aether.mp3） */
+  const BGM_BOSS_SRC = 'assets/audio/bgm/boss.mp3';
   const VOICE_MASTER_VOLUME = 0.42;
   // ---------------------------------------------------------------------------
   // ボイスURLのルール（プニとルナモンでファイルを混在させない）
@@ -728,6 +1028,23 @@
     audio.voiceReady = true;
   }
 
+  // 別種類のボイスが重ならないよう、同一スキン内で exceptType 以外を停止する
+  function stopOtherVoicePlayers(skin, exceptType) {
+    const bucket = audio.voicePlayers[skin];
+    if (!bucket) return;
+    for (const key of Object.keys(bucket)) {
+      if (key === exceptType) continue;
+      const el = bucket[key];
+      if (!el) continue;
+      try {
+        el.pause();
+        el.currentTime = 0;
+      } catch (_e) {
+        // 無視（読み込み失敗時など）
+      }
+    }
+  }
+
   function playVoice(type) {
     // 初回が攻撃など playSe より先に来る場合でも Audio を用意する
     initVoicePlayers();
@@ -750,6 +1067,9 @@
     if (!player.paused && !player.ended) {
       return true;
     }
+
+    // 再生中の別種類ボイスを止めてから、今回の種類だけ鳴らす
+    stopOtherVoicePlayers(skin, type);
 
     try {
       player.currentTime = 0;
@@ -783,7 +1103,10 @@
     osc.type = type;
     osc.frequency.setValueAtTime(freq, startTime);
     gain.gain.setValueAtTime(0.0001, startTime);
-    gain.gain.exponentialRampToValueAtTime(volume * BGM_MASTER_VOLUME, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(
+      volume * BGM_MASTER_VOLUME * BGM_TONE_GAIN_MULT,
+      startTime + 0.02
+    );
     gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
     osc.connect(gain);
     gain.connect(audio.ctx.destination);
@@ -791,18 +1114,145 @@
     osc.stop(startTime + duration + 0.02);
   }
 
+  function stopBossFileBgm() {
+    const el = audio.bossBgmAudio;
+    if (!el) return;
+    el.pause();
+    el.currentTime = 0;
+  }
+
+  function startBossFileBgm() {
+    if (audio.bgmTimer) {
+      window.clearTimeout(audio.bgmTimer);
+      audio.bgmTimer = null;
+    }
+    if (!audio.bossBgmAudio) {
+      const el = new Audio(BGM_BOSS_SRC);
+      el.loop = true;
+      el.volume = BOSS_BGM_VOLUME;
+      el.addEventListener('error', () => {
+        console.error('ボスBGMの読み込みに失敗しました');
+      });
+      audio.bossBgmAudio = el;
+    }
+    const el = audio.bossBgmAudio;
+    el.volume = BOSS_BGM_VOLUME;
+    el.currentTime = 0;
+    el.play().catch(() => {});
+  }
+
   function restartBgmIfRunning() {
-    if (!audio.ctx || !audio.bgmStarted) return;
+    stopBossFileBgm();
+    if (!audio.bgmStarted) return;
     if (audio.bgmTimer) {
       window.clearTimeout(audio.bgmTimer);
       audio.bgmTimer = null;
     }
     audio.bgmStep = 0;
+    if (audio.bgmVariant === 'boss') {
+      startBossFileBgm();
+      return;
+    }
+    if (!audio.ctx) return;
     scheduleBgmPattern();
+  }
+
+  /** ポーズ時：BGM の次スケジュールを止め、ボス MP3 と Web Audio を一時停止 */
+  function pauseGameplayAudio() {
+    if (audio.bgmTimer) {
+      window.clearTimeout(audio.bgmTimer);
+      audio.bgmTimer = null;
+    }
+    const boss = audio.bossBgmAudio;
+    if (boss && !boss.paused) {
+      try {
+        boss.pause();
+      } catch (_e) {
+        // 無視
+      }
+    }
+    if (audio.ctx && audio.ctx.state === 'running') {
+      audio.ctx.suspend().catch(() => {});
+    }
+  }
+
+  /** 再開時：Web Audio を起こし、BGM を再スケジュールまたはボス MP3 を再生 */
+  function resumeGameplayAudio() {
+    if (audio.ctx && audio.ctx.state === 'suspended') {
+      audio.ctx.resume().catch(() => {});
+    }
+    if (!audio.bgmStarted) return;
+    if (audio.bgmVariant === 'boss') {
+      const boss = audio.bossBgmAudio;
+      if (boss) boss.play().catch(() => {});
+      return;
+    }
+    // プロシージャル BGM：次ループの setTimeout が生きている＝既に 1 パターン分スケジュール済み。
+    // 無条件で schedule すると、直後の loadStage.restart や二重 resume と同時刻に和音が二重になる。
+    if (audio.ctx && gameStarted && !audio.bgmTimer) {
+      scheduleBgmPattern();
+    }
+  }
+
+  function syncPauseOpenButtonVisibility() {
+    pauseOpenBtn.style.display =
+      gameStarted && !gameOverMenuActive ? 'flex' : 'none';
+  }
+
+  function openPauseMenu() {
+    if (!gameStarted || gameOverMenuActive || gamePaused) return;
+    gamePaused = true;
+    input.left = input.right = input.jump = input.attack = false;
+    input.jumpPressed = input.attackPressed = false;
+    pausePanelEl.style.display = 'flex';
+    pauseGameplayAudio();
+  }
+
+  function closePauseResumeGame() {
+    if (!gamePaused) return;
+    gamePaused = false;
+    pausePanelEl.style.display = 'none';
+    resumeGameplayAudio();
+  }
+
+  function togglePauseMenu() {
+    if (!gameStarted || gameOverMenuActive) return;
+    if (gamePaused) closePauseResumeGame();
+    else openPauseMenu();
+  }
+
+  /** ステージ選択画面へ戻す共通処理（クリア／ゲームオーバー／ポーズから） */
+  function returnToStageSelectScreen() {
+    gamePaused = false;
+    pausePanelEl.style.display = 'none';
+    if (audio.bgmTimer) {
+      window.clearTimeout(audio.bgmTimer);
+      audio.bgmTimer = null;
+    }
+    stopBossFileBgm();
+    audio.ctx?.resume().catch(() => {});
+    gameStarted = false;
+    gameOverMenuActive = false;
+    gameOverPanelEl.style.display = 'none';
+    currentStageName = '';
+    currentStageId = '';
+    updateStatusLabel();
+    stageSelectEl.style.display = 'flex';
+    messageEl.style.display = 'none';
+    clearActionsEl.style.display = 'none';
+    syncPauseOpenButtonVisibility();
   }
 
   function scheduleBgmPattern() {
     if (!audio.ctx || !audio.bgmStarted) return;
+    // ボス戦はファイル BGM（startBossFileBgm）のため Web Audio ループは張らない
+    if (audio.bgmVariant === 'boss') {
+      if (audio.bgmTimer) {
+        window.clearTimeout(audio.bgmTimer);
+        audio.bgmTimer = null;
+      }
+      return;
+    }
     const now = audio.ctx.currentTime;
     const isStage2 = audio.bgmVariant === 'stage2';
     const isDesert = audio.bgmVariant === 'desert';
@@ -871,25 +1321,827 @@
   }
 
   function startBgmIfNeeded() {
-    if (!audio.ctx || audio.bgmStarted) return;
+    if (audio.bgmStarted) return;
     audio.bgmStarted = true;
+    if (audio.bgmVariant === 'boss') {
+      startBossFileBgm();
+      return;
+    }
+    if (!audio.ctx) return;
     scheduleBgmPattern();
   }
+
+  /** 短いホワイトノイズ用バッファを生成する */
+  function createShortNoiseBuffer(ctx, seconds) {
+    const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+    return buf;
+  }
+
+  /** 帯域を絞ったノイズバースト（葉擦れ・風切り） */
+  function playBandNoiseBurst(ctx, t0, dur, centerHz, q, peakGain) {
+    const buf = createShortNoiseBuffer(ctx, dur + 0.04);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(centerHz, t0);
+    bp.frequency.exponentialRampToValueAtTime(
+      Math.min(centerHz * 1.45, ctx.sampleRate * 0.45),
+      t0 + dur * 0.55
+    );
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    const g0 = Math.max(0.0002, peakGain);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(g0, t0 + Math.min(0.012, dur * 0.25));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(audio.seOutput);
+    src.start(t0);
+    src.stop(t0 + dur + 0.05);
+  }
+
+  /** ローパスでノイズを通したスウィープ（空気の塊・投擲の風） */
+  function playLowpassNoiseSweep(ctx, t0, dur, fHi, fLo, peakGain) {
+    const buf = createShortNoiseBuffer(ctx, dur + 0.04);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(fHi, t0);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(80, fLo), t0 + dur * 0.88);
+    const g = ctx.createGain();
+    const g0 = Math.max(0.0002, peakGain);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(g0, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(lp);
+    lp.connect(g);
+    g.connect(audio.seOutput);
+    src.start(t0);
+    src.stop(t0 + dur + 0.05);
+  }
+
+  /** 幹前強風で押し戻されたときの突風 SE */
+  function playBossGustWindSe(ctx, t0) {
+    // ボス戦 BGM 下げとセットで、合成レイヤだけ内部も持ち上げる
+    const wm = bossSefxBk();
+    playLowpassNoiseSweep(ctx, t0, 0.19, 5600, 160, 0.062 * wm);
+    playBandNoiseBurst(ctx, t0, 0.11, 620, 0.42, 0.048 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.035, 0.1, 1500, 0.55, 0.04 * wm);
+
+    const rumble = ctx.createOscillator();
+    const gR = ctx.createGain();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(52, t0);
+    rumble.frequency.exponentialRampToValueAtTime(34, t0 + 0.16);
+    gR.gain.setValueAtTime(0.0001, t0);
+    gR.gain.exponentialRampToValueAtTime(0.078 * wm, t0 + 0.035);
+    gR.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    rumble.connect(gR);
+    gR.connect(audio.seOutput);
+    rumble.start(t0);
+    rumble.stop(t0 + 0.24);
+
+    const gust = ctx.createOscillator();
+    const gG = ctx.createGain();
+    gust.type = 'triangle';
+    gust.frequency.setValueAtTime(120, t0 + 0.02);
+    gust.frequency.exponentialRampToValueAtTime(880, t0 + 0.14);
+    gG.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gG.gain.exponentialRampToValueAtTime(0.055 * wm, t0 + 0.045);
+    gG.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+    gust.connect(gG);
+    gG.connect(audio.seOutput);
+    gust.start(t0 + 0.02);
+    gust.stop(t0 + 0.2);
+  }
+
+  /**
+   * 敵に星弾・しっぽが当たって撃破されたときの合成 SE（ボイス enemyDefeat と重ねる）
+   * キラ星＋柔らかい胴体音＋きらめきノイズのファンタジー調
+   * （BGM やボイスに埋もれないようゲインをやや強め）
+   */
+  function playEnemyHitSe(ctx, t0, ampExtra = 1) {
+    const amp = 2.45 * ampExtra;
+    const sparkle = [1046.5, 1318.51, 1567.98];
+    for (let i = 0; i < sparkle.length; i++) {
+      const t = t0 + i * 0.026;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(sparkle[i], t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.052 * amp, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.085);
+      o.connect(g);
+      g.connect(audio.seOutput);
+      o.start(t);
+      o.stop(t + 0.09);
+    }
+
+    const body = ctx.createOscillator();
+    const gB = ctx.createGain();
+    body.type = 'triangle';
+    body.frequency.setValueAtTime(460, t0 + 0.018);
+    body.frequency.exponentialRampToValueAtTime(125, t0 + 0.11);
+    gB.gain.setValueAtTime(0.0001, t0 + 0.018);
+    gB.gain.exponentialRampToValueAtTime(0.085 * amp, t0 + 0.032);
+    gB.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+    body.connect(gB);
+    gB.connect(audio.seOutput);
+    body.start(t0 + 0.018);
+    body.stop(t0 + 0.16);
+
+    playBandNoiseBurst(ctx, t0 + 0.035, 0.075, 4800, 2.4, 0.024 * amp);
+    playLowpassNoiseSweep(ctx, t0 + 0.045, 0.09, 3600, 180, 0.03 * amp);
+
+    const thud = ctx.createOscillator();
+    const gT = ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(92, t0 + 0.055);
+    thud.frequency.exponentialRampToValueAtTime(38, t0 + 0.13);
+    gT.gain.setValueAtTime(0.0001, t0 + 0.055);
+    gT.gain.exponentialRampToValueAtTime(0.068 * amp, t0 + 0.07);
+    gT.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.17);
+    thud.connect(gT);
+    gT.connect(audio.seOutput);
+    thud.start(t0 + 0.055);
+    thud.stop(t0 + 0.18);
+
+    const ring = ctx.createOscillator();
+    const gR = ctx.createGain();
+    ring.type = 'triangle';
+    ring.frequency.setValueAtTime(1980, t0 + 0.02);
+    ring.frequency.exponentialRampToValueAtTime(6600, t0 + 0.045);
+    gR.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gR.gain.exponentialRampToValueAtTime(0.022 * amp, t0 + 0.028);
+    gR.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+    ring.connect(gR);
+    gR.connect(audio.seOutput);
+    ring.start(t0 + 0.02);
+    ring.stop(t0 + 0.075);
+  }
+
+  /** ボス戦で敵撃破 SE に重ねる、低いドン（キラ成分が BGM に負けにくくなる） */
+  function playEnemyHitBossAccent(ctx, t0) {
+    if (currentStageId !== 'stage4' || !audio.seOutput) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(58, t0);
+    o.frequency.exponentialRampToValueAtTime(26, t0 + 0.18);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.2 * bossSefxBk(), t0 + 0.028);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    o.connect(g);
+    g.connect(audio.seOutput);
+    o.start(t0);
+    o.stop(t0 + 0.24);
+  }
+
+  /** ボス無敵時に星弾が弾かれたときの短い弾き音 */
+  function playBossStarClangSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+    const m = bossSefxBk();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(380, t0);
+    o.frequency.exponentialRampToValueAtTime(95, t0 + 0.05);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.12 * m, t0 + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.065);
+    o.connect(g);
+    g.connect(out);
+    o.start(t0);
+    o.stop(t0 + 0.07);
+    playBandNoiseBurst(ctx, t0 + 0.002, 0.032, 1600, 2.2, 0.045 * m);
+  }
+
+  /**
+   * ボスがダメージを受けたとき（撃破以外）
+   * 重い幹に食い込むドン寄り（しっぽ攻撃の「風切り＋上昇音」とは音色を分ける）
+   */
+  function playBossTakeDamageSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+    const m = bossSefxBk();
+
+    const thud = ctx.createOscillator();
+    const gT = ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(76, t0);
+    thud.frequency.exponentialRampToValueAtTime(32, t0 + 0.2);
+    gT.gain.setValueAtTime(0.0001, t0);
+    // 低音が BGM に埋もれにくいようピークをやや強め（クリック注意）
+    gT.gain.exponentialRampToValueAtTime(0.3 * m, t0 + 0.014);
+    gT.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
+    thud.connect(gT);
+    gT.connect(out);
+    thud.start(t0);
+    thud.stop(t0 + 0.26);
+
+    const wood = ctx.createOscillator();
+    const gW = ctx.createGain();
+    wood.type = 'triangle';
+    wood.frequency.setValueAtTime(112, t0 + 0.005);
+    wood.frequency.exponentialRampToValueAtTime(52, t0 + 0.15);
+    gW.gain.setValueAtTime(0.0001, t0 + 0.005);
+    gW.gain.exponentialRampToValueAtTime(0.11 * m, t0 + 0.022);
+    gW.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+    wood.connect(gW);
+    gW.connect(out);
+    wood.start(t0 + 0.005);
+    wood.stop(t0 + 0.19);
+
+    // 高域のキラ音は付けず、低〜中域のざらりだけ
+    playBandNoiseBurst(ctx, t0 + 0.012, 0.085, 380, 0.5, 0.048 * m);
+    playBandNoiseBurst(ctx, t0 + 0.035, 0.07, 220, 0.38, 0.038 * m);
+    playLowpassNoiseSweep(ctx, t0 + 0.018, 0.12, 480, 85, 0.03 * m);
+  }
+
+  /** 消滅・点滅中のきらきらが薄れていくイメージの短い SE */
+  function playEnemyVanishTickSe(ctx, t0) {
+    const f0 = 1400 + Math.random() * 400;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0);
+    o.frequency.exponentialRampToValueAtTime(180, t0 + 0.09);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.045, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
+    o.connect(g);
+    g.connect(audio.seOutput);
+    o.start(t0);
+    o.stop(t0 + 0.11);
+
+    playBandNoiseBurst(ctx, t0 + 0.012, 0.06, 3200 + Math.random() * 600, 1.6, 0.018);
+    playLowpassNoiseSweep(ctx, t0 + 0.02, 0.07, 5200, 400, 0.022);
+  }
+
+  /** しっぽスウィープ：低音の芯＋三角スウィープ＋帯域ノイズの風 */
+  function playTailSwipeSe(ctx, t0) {
+    const sub = ctx.createOscillator();
+    const gSub = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(62, t0);
+    sub.frequency.exponentialRampToValueAtTime(48, t0 + 0.09);
+    gSub.gain.setValueAtTime(0.0001, t0);
+    gSub.gain.exponentialRampToValueAtTime(0.05, t0 + 0.018);
+    gSub.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    sub.connect(gSub);
+    gSub.connect(audio.seOutput);
+    sub.start(t0);
+    sub.stop(t0 + 0.13);
+
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(150, t0);
+    o.frequency.exponentialRampToValueAtTime(620, t0 + 0.1);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.095, t0 + 0.014);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.13);
+    o.connect(g);
+    g.connect(audio.seOutput);
+    o.start(t0);
+    o.stop(t0 + 0.14);
+
+    playBandNoiseBurst(ctx, t0 + 0.006, 0.09, 2400, 0.55, 0.026);
+    playLowpassNoiseSweep(ctx, t0 + 0.015, 0.08, 3400, 420, 0.03);
+  }
+
+  /** ボス：リンゴ攻撃 — 投げの風＋重い着地の芯＋軽い木質のカキッ */
+  function playBossAppleAtkSe(ctx, t0) {
+    const wm = bossSefxBk();
+    playLowpassNoiseSweep(ctx, t0, 0.048, 2800, 220, 0.034 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.002, 0.035, 950, 1.1, 0.018 * wm);
+
+    const thud = ctx.createOscillator();
+    const gTh = ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(92, t0 + 0.02);
+    thud.frequency.exponentialRampToValueAtTime(54, t0 + 0.12);
+    gTh.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gTh.gain.exponentialRampToValueAtTime(0.13 * wm, t0 + 0.028);
+    gTh.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+    thud.connect(gTh);
+    gTh.connect(audio.seOutput);
+    thud.start(t0 + 0.02);
+    thud.stop(t0 + 0.17);
+
+    const wood = ctx.createOscillator();
+    const gW = ctx.createGain();
+    wood.type = 'triangle';
+    wood.frequency.setValueAtTime(260, t0 + 0.024);
+    wood.frequency.exponentialRampToValueAtTime(105, t0 + 0.09);
+    gW.gain.setValueAtTime(0.0001, t0 + 0.024);
+    gW.gain.exponentialRampToValueAtTime(0.065 * wm, t0 + 0.032);
+    gW.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    wood.connect(gW);
+    gW.connect(audio.seOutput);
+    wood.start(t0 + 0.024);
+    wood.stop(t0 + 0.13);
+
+    const click = ctx.createOscillator();
+    const gC = ctx.createGain();
+    click.type = 'triangle';
+    click.frequency.setValueAtTime(480, t0 + 0.036);
+    click.frequency.exponentialRampToValueAtTime(1600, t0 + 0.052);
+    gC.gain.setValueAtTime(0.0001, t0 + 0.036);
+    gC.gain.exponentialRampToValueAtTime(0.04 * wm, t0 + 0.04);
+    gC.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.065);
+    click.connect(gC);
+    gC.connect(audio.seOutput);
+    click.start(t0 + 0.036);
+    click.stop(t0 + 0.07);
+  }
+
+  /** ボス：葉攻撃 — 多層の擦れ音＋刃の抜け＋高域の切れ＋ザシュッとした刃風 */
+  function playBossLeafAtkSe(ctx, t0) {
+    const wm = bossSefxBk();
+    playBandNoiseBurst(ctx, t0, 0.058, 1900, 2.4, 0.042 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.01, 0.048, 3600, 1.7, 0.028 * wm);
+    playLowpassNoiseSweep(ctx, t0 + 0.005, 0.065, 3000, 350, 0.036 * wm);
+
+    // 鋭い「ザシュザシュ」— 狭帯域ノイズをミリ秒単位でずらして連打
+    const zasuCenters = [6800, 8200, 5900, 7800, 6400, 9000];
+    const zasuOff = [0, 0.016, 0.03, 0.045, 0.062, 0.078];
+    for (let i = 0; i < zasuCenters.length; i++) {
+      playBandNoiseBurst(
+        ctx,
+        t0 + zasuOff[i],
+        0.022 + (i % 2) * 0.006,
+        zasuCenters[i],
+        3.4 + (i % 3) * 0.35,
+        (0.034 + (i % 2) * 0.006) * wm
+      );
+    }
+
+    // 刃が空気を切るような短いソー（高周波→急速に低下）
+    for (let i = 0; i < 4; i++) {
+      const ts = t0 + 0.006 + i * 0.019;
+      const blade = ctx.createOscillator();
+      const gBl = ctx.createGain();
+      blade.type = 'sawtooth';
+      blade.frequency.setValueAtTime(3200 + i * 450, ts);
+      blade.frequency.exponentialRampToValueAtTime(380, ts + 0.02);
+      gBl.gain.setValueAtTime(0.0001, ts);
+      gBl.gain.exponentialRampToValueAtTime(0.026 * wm, ts + 0.0018);
+      gBl.gain.exponentialRampToValueAtTime(0.0001, ts + 0.024);
+      blade.connect(gBl);
+      gBl.connect(audio.seOutput);
+      blade.start(ts);
+      blade.stop(ts + 0.027);
+    }
+
+    const body = ctx.createOscillator();
+    const gB = ctx.createGain();
+    body.type = 'triangle';
+    body.frequency.setValueAtTime(300, t0);
+    body.frequency.exponentialRampToValueAtTime(1550, t0 + 0.055);
+    gB.gain.setValueAtTime(0.0001, t0);
+    gB.gain.exponentialRampToValueAtTime(0.062 * wm, t0 + 0.004);
+    gB.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.075);
+    body.connect(gB);
+    gB.connect(audio.seOutput);
+    body.start(t0);
+    body.stop(t0 + 0.08);
+
+    const shine = ctx.createOscillator();
+    const gS = ctx.createGain();
+    shine.type = 'sine';
+    shine.frequency.setValueAtTime(880, t0 + 0.006);
+    shine.frequency.exponentialRampToValueAtTime(2600, t0 + 0.04);
+    gS.gain.setValueAtTime(0.0001, t0 + 0.006);
+    gS.gain.exponentialRampToValueAtTime(0.032 * wm, t0 + 0.01);
+    gS.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
+    shine.connect(gS);
+    gS.connect(audio.seOutput);
+    shine.start(t0 + 0.006);
+    shine.stop(t0 + 0.06);
+
+    const edge = ctx.createOscillator();
+    const gE = ctx.createGain();
+    edge.type = 'square';
+    edge.frequency.setValueAtTime(4800, t0);
+    edge.frequency.exponentialRampToValueAtTime(1200, t0 + 0.024);
+    gE.gain.setValueAtTime(0.0001, t0);
+    gE.gain.exponentialRampToValueAtTime(0.014 * wm, t0 + 0.002);
+    gE.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.032);
+    edge.connect(gE);
+    gE.connect(audio.seOutput);
+    edge.start(t0);
+    edge.stop(t0 + 0.035);
+  }
+
+  /** ボス：リンゴ予備 — 実が揺れるような軽い木のきしみ＋小さな風 */
+  function playBossWuAppleSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+    const wm = bossSefxBk();
+
+    const swayA = ctx.createOscillator();
+    const swayB = ctx.createOscillator();
+    const gA = ctx.createGain();
+    const gB = ctx.createGain();
+    swayA.type = 'sine';
+    swayB.type = 'sine';
+    swayA.frequency.setValueAtTime(186, t0);
+    swayB.frequency.setValueAtTime(198, t0);
+    gA.gain.setValueAtTime(0.0001, t0);
+    gA.gain.exponentialRampToValueAtTime(0.022 * wm, t0 + 0.05);
+    gA.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.42);
+    gB.gain.setValueAtTime(0.0001, t0);
+    gB.gain.exponentialRampToValueAtTime(0.022 * wm, t0 + 0.05);
+    gB.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.42);
+    swayA.connect(gA);
+    swayB.connect(gB);
+    gA.connect(out);
+    gB.connect(out);
+    swayA.start(t0);
+    swayB.start(t0);
+    swayA.stop(t0 + 0.44);
+    swayB.stop(t0 + 0.44);
+
+    const creak = ctx.createOscillator();
+    const gC = ctx.createGain();
+    creak.type = 'triangle';
+    creak.frequency.setValueAtTime(215, t0 + 0.02);
+    creak.frequency.exponentialRampToValueAtTime(95, t0 + 0.38);
+    gC.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gC.gain.exponentialRampToValueAtTime(0.038 * wm, t0 + 0.08);
+    gC.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.42);
+    creak.connect(gC);
+    gC.connect(out);
+    creak.start(t0 + 0.02);
+    creak.stop(t0 + 0.44);
+
+    playLowpassNoiseSweep(ctx, t0 + 0.04, 0.14, 900, 220, 0.018 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.18, 0.045, 1400, 1.15, 0.014 * wm);
+  }
+
+  /** ボス：葉予備 — 梢を撫でる風・乾いた擦れが少しずつ強まる */
+  function playBossWuLeafSe(ctx, t0) {
+    const wm = bossSefxBk();
+    // 予備は立ち上がりが緩いのでゲインを強めに（マスキング対策）
+    playLowpassNoiseSweep(ctx, t0, 0.2, 520, 2200, 0.04 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.04, 0.06, 1100, 1.5, 0.026 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.12, 0.055, 2400, 1.9, 0.028 * wm);
+
+    const rustle = ctx.createOscillator();
+    const gR = ctx.createGain();
+    rustle.type = 'triangle';
+    rustle.frequency.setValueAtTime(380, t0 + 0.02);
+    rustle.frequency.exponentialRampToValueAtTime(1650, t0 + 0.28);
+    gR.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gR.gain.exponentialRampToValueAtTime(0.052 * wm, t0 + 0.1);
+    gR.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.36);
+    rustle.connect(gR);
+    gR.connect(audio.seOutput);
+    rustle.start(t0 + 0.02);
+    rustle.stop(t0 + 0.38);
+  }
+
+  /** ボス：枝予備（幹）— 地下で根がうねるような低音＋幹の軋み */
+  function playBossWuBranchSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+    const wm = bossSefxBk();
+
+    const sub = ctx.createOscillator();
+    const gS = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(58, t0);
+    sub.frequency.exponentialRampToValueAtTime(38, t0 + 0.55);
+    gS.gain.setValueAtTime(0.0001, t0);
+    gS.gain.exponentialRampToValueAtTime(0.085 * wm, t0 + 0.12);
+    gS.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.62);
+    sub.connect(gS);
+    gS.connect(out);
+    sub.start(t0);
+    sub.stop(t0 + 0.64);
+
+    const wood = ctx.createOscillator();
+    const gW = ctx.createGain();
+    wood.type = 'triangle';
+    wood.frequency.setValueAtTime(128, t0 + 0.03);
+    wood.frequency.exponentialRampToValueAtTime(72, t0 + 0.52);
+    gW.gain.setValueAtTime(0.0001, t0 + 0.03);
+    gW.gain.exponentialRampToValueAtTime(0.048 * wm, t0 + 0.14);
+    gW.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.58);
+    wood.connect(gW);
+    gW.connect(out);
+    wood.start(t0 + 0.03);
+    wood.stop(t0 + 0.6);
+
+    playLowpassNoiseSweep(ctx, t0 + 0.06, 0.18, 320, 70, 0.028 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.22, 0.07, 480, 0.65, 0.02 * wm);
+  }
+
+  /** ボス：枝の地面警告 — 短い危険音＋土のざらつき（発動直前） */
+  function playBossWuBranchWarnSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+    const wm = bossSefxBk();
+
+    const pulse = ctx.createOscillator();
+    const gP = ctx.createGain();
+    pulse.type = 'sawtooth';
+    pulse.frequency.setValueAtTime(68, t0);
+    pulse.frequency.exponentialRampToValueAtTime(52, t0 + 0.11);
+    gP.gain.setValueAtTime(0.0001, t0);
+    gP.gain.exponentialRampToValueAtTime(0.055 * wm, t0 + 0.012);
+    gP.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+    pulse.connect(gP);
+    gP.connect(out);
+    pulse.start(t0);
+    pulse.stop(t0 + 0.15);
+
+    const tick = ctx.createOscillator();
+    const gT = ctx.createGain();
+    tick.type = 'square';
+    tick.frequency.setValueAtTime(420, t0 + 0.02);
+    tick.frequency.exponentialRampToValueAtTime(1200, t0 + 0.06);
+    gT.gain.setValueAtTime(0.0001, t0 + 0.02);
+    gT.gain.exponentialRampToValueAtTime(0.018 * wm, t0 + 0.028);
+    gT.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+    tick.connect(gT);
+    gT.connect(out);
+    tick.start(t0 + 0.02);
+    tick.stop(t0 + 0.095);
+
+    playBandNoiseBurst(ctx, t0 + 0.04, 0.055, 720, 1.1, 0.022 * wm);
+    playLowpassNoiseSweep(ctx, t0 + 0.06, 0.1, 1600, 200, 0.024 * wm);
+  }
+
+  /** ボス：リンゴヒット — 鈍い衝撃＋皮のパチッ */
+  function playBossHitAppleSe(ctx, t0) {
+    const wm = bossSefxBk();
+    const low = ctx.createOscillator();
+    const gL = ctx.createGain();
+    low.type = 'sine';
+    low.frequency.setValueAtTime(200, t0);
+    low.frequency.exponentialRampToValueAtTime(95, t0 + 0.1);
+    gL.gain.setValueAtTime(0.0001, t0);
+    gL.gain.exponentialRampToValueAtTime(0.11 * wm, t0 + 0.006);
+    gL.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+    low.connect(gL);
+    gL.connect(audio.seOutput);
+    low.start(t0);
+    low.stop(t0 + 0.15);
+
+    const snap = ctx.createOscillator();
+    const gSn = ctx.createGain();
+    snap.type = 'triangle';
+    snap.frequency.setValueAtTime(420, t0 + 0.004);
+    snap.frequency.exponentialRampToValueAtTime(120, t0 + 0.06);
+    gSn.gain.setValueAtTime(0.0001, t0 + 0.004);
+    gSn.gain.exponentialRampToValueAtTime(0.055 * wm, t0 + 0.008);
+    gSn.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+    snap.connect(gSn);
+    gSn.connect(audio.seOutput);
+    snap.start(t0 + 0.004);
+    snap.stop(t0 + 0.1);
+
+    playBandNoiseBurst(ctx, t0 + 0.008, 0.045, 2200, 1.2, 0.022 * wm);
+  }
+
+  /** ボス：葉ヒット — 乾いた擦れ＋刺さる中高域 */
+  function playBossHitLeafSe(ctx, t0) {
+    const wm = bossSefxBk();
+    playBandNoiseBurst(ctx, t0, 0.05, 2600, 2, 0.035 * wm);
+    playBandNoiseBurst(ctx, t0 + 0.012, 0.04, 4800, 1.4, 0.02 * wm);
+
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(480, t0);
+    o.frequency.exponentialRampToValueAtTime(920, t0 + 0.045);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.07 * wm, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.085);
+    o.connect(g);
+    g.connect(audio.seOutput);
+    o.start(t0);
+    o.stop(t0 + 0.09);
+  }
+
+  /**
+   * ゲームクリア用ファンファーレ（Web Audio）
+   * ボイス clear.wav と重ねても破綻しないよう、中高音域を中心に層を厚くする。
+   */
+  function playGameClearFanfareSe(ctx, t0) {
+    const out = audio.seOutput;
+    if (!out) return;
+
+    // 和音1ブロック（各音を独立エンベロープ）
+    function chordBlock(freqs, t, dur, peak, types) {
+      for (let i = 0; i < freqs.length; i++) {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = types && types[i] ? types[i] : (i === 0 ? 'triangle' : 'sine');
+        o.frequency.setValueAtTime(freqs[i], t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(
+          peak * (0.42 + i * 0.07),
+          t + 0.028
+        );
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g);
+        g.connect(out);
+        o.start(t);
+        o.stop(t + dur + 0.03);
+      }
+    }
+
+    // 導入：低めの C メジャー → 明るい上層
+    chordBlock(
+      [130.81, 196.0, 261.63, 329.63],
+      t0,
+      0.36,
+      0.085,
+      ['triangle', 'sine', 'sine', 'triangle']
+    );
+    chordBlock(
+      [523.25, 659.25, 783.99, 987.77],
+      t0 + 0.04,
+      0.34,
+      0.055,
+      ['triangle', 'triangle', 'sine', 'sine']
+    );
+
+    // 上昇アルペジオ（勝利の階段）
+    const arp = [523.25, 587.33, 659.25, 698.46, 783.99, 880.0, 987.77, 1046.5];
+    for (let i = 0; i < arp.length; i++) {
+      const t = t0 + 0.11 + i * 0.075;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(arp[i], t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.068, t + 0.014);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o.connect(g);
+      g.connect(out);
+      o.start(t);
+      o.stop(t + 0.14);
+    }
+
+    // 中間アクセント（短いファンファーレ型の四度跳躍感）
+    chordBlock([392.0, 523.25, 659.25], t0 + 0.78, 0.22, 0.06, ['sine', 'triangle', 'triangle']);
+
+    // 終止：長めの輝きコード＋ハイシャイン
+    const tBig = t0 + 1.02;
+    chordBlock(
+      [261.63, 329.63, 392.0, 523.25, 659.25, 783.99, 1046.5],
+      tBig,
+      1.05,
+      0.038,
+      ['triangle', 'sine', 'sine', 'triangle', 'sine', 'triangle', 'sine']
+    );
+    for (let k = 0; k < 6; k++) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(1318.51 + k * 55, tBig + k * 0.035);
+      g.gain.setValueAtTime(0.0001, tBig + k * 0.035);
+      g.gain.exponentialRampToValueAtTime(0.022, tBig + k * 0.035 + 0.018);
+      g.gain.exponentialRampToValueAtTime(0.0001, tBig + 0.72);
+      o.connect(g);
+      g.connect(out);
+      o.start(tBig + k * 0.035);
+      o.stop(tBig + 0.78);
+    }
+  }
+
+  /** ボイスと紐づかないボス専用SE（出現演出・攻撃ヒット音など。ボイスは鳴らさない） */
+  const BOSS_SE_NO_VOICE = new Set([
+    'bossGustWind',
+    'bossAtkApple',
+    'bossAtkLeaf',
+    'bossAtkBranch',
+    'bossWuApple',
+    'bossWuLeaf',
+    'bossWuBranch',
+    'bossWuBranchWarn',
+    'bossHitApple',
+    'bossHitLeaf',
+    'bossHitRoot',
+    'bossTakeDamage',
+    'bossStarClang',
+    // アイテム「出現」時の合成のみ（回収時は playSe('star'|'life') でボイス付き）
+    'bossItemStar',
+    'bossItemHeal',
+  ]);
 
   function playSe(type) {
     ensureAudioContext();
 
-    // しっぽSEは攻撃ボイスを別途再生するため、ここではボイスを掛けない
-    if (type !== 'tailSwipe') {
+    // 合成専用SEではボイスを掛けない（ジャンプ・星など通常SEはボス戦でもボイス再生）
+    const skipVoice =
+      type === 'tailSwipe' ||
+      type === 'enemyVanishTick' ||
+      BOSS_SE_NO_VOICE.has(type);
+    if (!skipVoice) {
       playVoice(type);
     }
 
     if (!audio.ctx) return;
-    const now = audio.ctx.currentTime;
+    const ctx = audio.ctx;
+    // suspended 直後は同時刻スケジュールだと鳴らない環境があるため resume して少し先に載せる
+    if (ctx.state !== 'running') {
+      ctx.resume().catch(() => {});
+    }
+    // suspended→running が非同期のとき、同フレームの 0.03 だと鳴らないことがあるため長めに取る
+    const padSec = ctx.state === 'running' ? 0.04 : 0.16;
+    const now = ctx.currentTime + padSec;
+    if (!audio.seOutput) {
+      const sm = ctx.createGain();
+      sm.connect(ctx.destination);
+      audio.seOutput = sm;
+    }
+    // ボス戦では BGM が大きいので合成 SE マスターを持ち上げる（毎回同期）
+    audio.seOutput.gain.value = SE_GAIN_MULT * bossSefxBk();
+
+    if (type === 'bossStarClang') {
+      playBossStarClangSe(ctx, now);
+      return;
+    }
+    if (type === 'bossGustWind') {
+      playBossGustWindSe(ctx, now);
+      return;
+    }
+    if (type === 'enemyDefeat') {
+      const bossExtra = currentStageId === 'stage4' ? 1.75 : 1;
+      playEnemyHitSe(ctx, now, bossExtra);
+      if (currentStageId === 'stage4') {
+        playEnemyHitBossAccent(ctx, now + 0.018);
+      }
+      return;
+    }
+    if (type === 'enemyVanishTick') {
+      playEnemyVanishTickSe(ctx, now);
+      return;
+    }
+    if (type === 'tailSwipe') {
+      playTailSwipeSe(ctx, now);
+      return;
+    }
+    if (type === 'bossAtkApple') {
+      playBossAppleAtkSe(ctx, now);
+      return;
+    }
+    if (type === 'bossAtkLeaf') {
+      playBossLeafAtkSe(ctx, now);
+      return;
+    }
+    if (type === 'bossWuApple') {
+      playBossWuAppleSe(ctx, now);
+      return;
+    }
+    if (type === 'bossWuLeaf') {
+      playBossWuLeafSe(ctx, now);
+      return;
+    }
+    if (type === 'bossWuBranch') {
+      playBossWuBranchSe(ctx, now);
+      return;
+    }
+    if (type === 'bossWuBranchWarn') {
+      playBossWuBranchWarnSe(ctx, now);
+      return;
+    }
+    if (type === 'bossHitApple') {
+      playBossHitAppleSe(ctx, now);
+      return;
+    }
+    if (type === 'bossHitLeaf') {
+      playBossHitLeafSe(ctx, now);
+      return;
+    }
+    if (type === 'bossTakeDamage') {
+      playBossTakeDamageSe(ctx, now);
+      return;
+    }
+    if (type === 'fanfare') {
+      playGameClearFanfareSe(ctx, now);
+      return;
+    }
+
     const osc = audio.ctx.createOscillator();
     const gain = audio.ctx.createGain();
     osc.connect(gain);
-    gain.connect(audio.ctx.destination);
+    gain.connect(audio.seOutput);
 
     if (type === 'jump') {
       osc.type = 'triangle';
@@ -939,18 +2191,6 @@
       return;
     }
 
-    if (type === 'enemyDefeat') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(380, now);
-      osc.frequency.exponentialRampToValueAtTime(620, now + 0.1);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.1, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
-      osc.start(now);
-      osc.stop(now + 0.14);
-      return;
-    }
-
     if (type === 'fall') {
       // 落下時は低めの「ドスン」を重ねて着地失敗の手触りを強める
       osc.type = 'sawtooth';
@@ -984,41 +2224,102 @@
       noiseGain.gain.exponentialRampToValueAtTime(0.004, now + 0.005);
       noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
       noise.connect(noiseGain);
-      noiseGain.connect(audio.ctx.destination);
+      noiseGain.connect(audio.seOutput);
       noise.start(now);
       noise.stop(now + 0.07);
       return;
     }
 
-    if (type === 'tailSwipe') {
-      // しっぽを振る短いスウィープ音（ボイスは無し）
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(420, now + 0.09);
+    // --- ボス戦：アイテム出現 ---
+    if (type === 'bossItemStar') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.07, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.085, now + 0.008);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
       osc.start(now);
       osc.stop(now + 0.12);
       return;
     }
+    if (type === 'bossItemHeal') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.05);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.09, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+      osc.start(now);
+      osc.stop(now + 0.15);
+      const osc2 = audio.ctx.createOscillator();
+      const g2 = audio.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(990, now + 0.06);
+      g2.gain.setValueAtTime(0.0001, now + 0.06);
+      g2.gain.exponentialRampToValueAtTime(0.055, now + 0.07);
+      g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      osc2.connect(g2);
+      g2.connect(audio.seOutput);
+      osc2.start(now + 0.06);
+      osc2.stop(now + 0.19);
+      return;
+    }
+    // --- ボス戦：攻撃発動（枝：重い破砕＋木のきしみ＋土砂ノイズ） ---
+    if (type === 'bossAtkBranch') {
+      const wm = bossSefxBk();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(95, now);
+      osc.frequency.exponentialRampToValueAtTime(48, now + 0.22);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12 * wm, now + 0.024);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
+      osc.start(now);
+      osc.stop(now + 0.28);
 
-    if (type === 'fanfare') {
-      const notes = [523.25, 659.25, 783.99, 1046.5];
-      for (let i = 0; i < notes.length; i++) {
-        const t = now + i * 0.12;
-        const fanOsc = audio.ctx.createOscillator();
-        const fanGain = audio.ctx.createGain();
-        fanOsc.type = i < notes.length - 1 ? 'triangle' : 'square';
-        fanOsc.frequency.setValueAtTime(notes[i], t);
-        fanGain.gain.setValueAtTime(0.0001, t);
-        fanGain.gain.exponentialRampToValueAtTime(0.11, t + 0.02);
-        fanGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-        fanOsc.connect(fanGain);
-        fanGain.connect(audio.ctx.destination);
-        fanOsc.start(t);
-        fanOsc.stop(t + 0.18);
-      }
+      const creak = audio.ctx.createOscillator();
+      const gCr = audio.ctx.createGain();
+      creak.type = 'triangle';
+      creak.frequency.setValueAtTime(175, now + 0.04);
+      creak.frequency.exponentialRampToValueAtTime(68, now + 0.19);
+      gCr.gain.setValueAtTime(0.0001, now + 0.04);
+      gCr.gain.exponentialRampToValueAtTime(0.055 * wm, now + 0.055);
+      gCr.gain.exponentialRampToValueAtTime(0.0001, now + 0.21);
+      creak.connect(gCr);
+      gCr.connect(audio.seOutput);
+      creak.start(now + 0.04);
+      creak.stop(now + 0.23);
+
+      playLowpassNoiseSweep(audio.ctx, now + 0.02, 0.12, 1700, 85, 0.042 * wm);
+      playBandNoiseBurst(audio.ctx, now + 0.07, 0.075, 380, 0.75, 0.028 * wm);
+      return;
+    }
+    // --- ボス戦：被弾（根：打撃＋土埃） ---
+    if (type === 'bossHitRoot') {
+      const wm = bossSefxBk();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(82, now + 0.11);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.1 * wm, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+      osc.start(now);
+      osc.stop(now + 0.14);
+
+      const bump = audio.ctx.createOscillator();
+      const gB = audio.ctx.createGain();
+      bump.type = 'sine';
+      bump.frequency.setValueAtTime(118, now + 0.006);
+      bump.frequency.exponentialRampToValueAtTime(62, now + 0.1);
+      gB.gain.setValueAtTime(0.0001, now + 0.006);
+      gB.gain.exponentialRampToValueAtTime(0.08 * wm, now + 0.012);
+      gB.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+      bump.connect(gB);
+      gB.connect(audio.seOutput);
+      bump.start(now + 0.006);
+      bump.stop(now + 0.13);
+
+      playLowpassNoiseSweep(audio.ctx, now + 0.01, 0.09, 900, 120, 0.032 * wm);
+      return;
     }
   }
 
@@ -1049,6 +2350,14 @@
 
   // キーボード（PCデバッグ用）
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+      if (gameStarted && !gameOverMenuActive) {
+        e.preventDefault();
+        togglePauseMenu();
+      }
+      return;
+    }
+    if (!gameStarted || gamePaused) return;
     if (e.key === 'ArrowLeft')  input.left  = true;
     if (e.key === 'ArrowRight') input.right = true;
     if (e.key === ' ' || e.key === 'ArrowUp') {
@@ -1063,6 +2372,8 @@
     }
   });
   document.addEventListener('keyup', (e) => {
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') return;
+    if (!gameStarted || gamePaused) return;
     if (e.key === 'ArrowLeft')  input.left  = false;
     if (e.key === 'ArrowRight') input.right = false;
     if (e.key === ' ' || e.key === 'ArrowUp') input.jump = false;
@@ -1073,6 +2384,11 @@
   // ユーティリティ
   // ============================================
   function reset() {
+    gamePaused = false;
+    pausePanelEl.style.display = 'none';
+    resumeGameplayAudio();
+    gameOverMenuActive = false;
+    gameOverPanelEl.style.display = 'none';
     player.x = 80; player.y = 200;
     player.vx = 0; player.vy = 0;
     camX = 0;
@@ -1083,12 +2399,14 @@
     jumpCount = 0;
     invincibleUntilMs = 0;
     starAmmo = 0;
-    lives = 1;
+    lives = isBossStage() ? 2 : 1;
     stars.forEach(s => s.collected = false);
     enemies.forEach((e) => {
       e.x = e.minX;
       e.dir = 1;
       e.defeated = false;
+      e.vanishUntilMs = 0;
+      e.vanishLastSeMs = 0;
     });
     hammerEnemies.forEach((he) => {
       he.x = he.minX;
@@ -1100,6 +2418,8 @@
       he.throwCooldown = 0;
       he.justLanded = false;
       he.defeated = false;
+      he.vanishUntilMs = 0;
+      he.vanishLastSeMs = 0;
     });
     hammers = [];
     starShots = [];
@@ -1119,23 +2439,82 @@
       se.dir = 1;
       se.dropCooldown = 40;
       se.defeated = false;
+      se.vanishUntilMs = 0;
+      se.vanishLastSeMs = 0;
     });
     skyDrops = [];
+    if (isBossStage()) {
+      camX = 0;
+      player.x = 170;
+      player.y = 400;
+      initBossArena();
+    }
     updateHud();
     messageEl.style.display = 'none';
     clearActionsEl.style.display = 'none';
   }
 
   function updateHud() {
-    const base = '💎 ' + collected + ' / ' + stars.length;
-    if (playerSkin === 'lunamon') {
-      const nowMs = performance.now();
-      const ready = nowMs >= tailAttackCooldownUntilMs;
-      scoreEl.textContent = base + (ready ? '  🌙しっぽ OK' : '  🌙しっぽ …');
+    const heart = '❤️ ' + lives;
+    if (playerSkin === 'puni') {
+      // プニ：星弾は中央の score ではなく残機横（ボスゲージと被らない）
+      if (isBossStage()) {
+        scoreEl.textContent = '';
+        livesEl.textContent = heart + '  ·  ⭐' + starAmmo;
+      } else {
+        scoreEl.textContent = '💎 ' + collected + ' / ' + stars.length;
+        livesEl.textContent = heart + '  ·  ⭐弾' + starAmmo;
+      }
     } else {
-      scoreEl.textContent = base + '  ⭐弾 ' + starAmmo;
+      if (isBossStage()) {
+        scoreEl.textContent = '';
+      } else {
+        scoreEl.textContent = '💎 ' + collected + ' / ' + stars.length;
+      }
+      livesEl.textContent = heart;
     }
-    livesEl.textContent = '❤️ ' + lives;
+    syncAttackButtonVisual();
+  }
+
+  /** アタックボタン：しっぽクール中はグレー＋残り秒、プニは星0でグレー */
+  function syncAttackButtonVisual() {
+    if (!attackBtn) return;
+    if (!gameStarted || gameOverMenuActive) {
+      attackBtn.classList.remove('attack-cooldown', 'attack-disabled');
+      attackBtn.textContent = 'ATTACK';
+      return;
+    }
+    if (gameWon) {
+      attackBtn.classList.remove('attack-cooldown', 'attack-disabled');
+      attackBtn.textContent = 'ATTACK';
+      return;
+    }
+    const nowMs = performance.now();
+    if (playerSkin === 'lunamon') {
+      const leftMs = tailAttackCooldownUntilMs - nowMs;
+      if (leftMs > 0) {
+        attackBtn.classList.add('attack-cooldown');
+        attackBtn.classList.remove('attack-disabled');
+        const sec = Math.max(0, leftMs / 1000);
+        const secLabel = (sec < 10 ? sec.toFixed(1) : sec.toFixed(0)) + 's';
+        attackBtn.innerHTML =
+          '<span class="atk-line1">ATTACK</span><span class="atk-cd">' +
+          secLabel +
+          '</span>';
+        return;
+      }
+      attackBtn.classList.remove('attack-cooldown', 'attack-disabled');
+      attackBtn.textContent = 'ATTACK';
+      return;
+    }
+    if (starAmmo <= 0) {
+      attackBtn.classList.add('attack-disabled');
+      attackBtn.classList.remove('attack-cooldown');
+      attackBtn.textContent = 'ATTACK';
+      return;
+    }
+    attackBtn.classList.remove('attack-cooldown', 'attack-disabled');
+    attackBtn.textContent = 'ATTACK';
   }
 
   function respawnPlayer(x, y) {
@@ -1145,7 +2524,7 @@
     player.vy = 0;
     player.onGround = false;
     jumpCount = 0;
-    camX = Math.max(0, player.x - W / 2);
+    camX = isBossStage() ? 0 : Math.max(0, player.x - W / 2);
   }
 
   function isInvincible() {
@@ -1156,8 +2535,16 @@
     lives--;
     updateHud();
     if (lives <= 0) {
-      showMessage('ゲームオーバー...\nステージをリセットします');
-      reset();
+      gamePaused = false;
+      pausePanelEl.style.display = 'none';
+      showMessage('ゲームオーバー');
+      gameOverMenuActive = true;
+      gameOverPanelEl.style.display = 'flex';
+      input.left = input.right = input.jump = input.attack = false;
+      input.jumpPressed = input.attackPressed = false;
+      stopBossFileBgm();
+      syncPauseOpenButtonVisibility();
+      syncAttackButtonVisual();
       return;
     }
     if (stayAtCurrentPosition) {
@@ -1199,15 +2586,1290 @@
     lives--;
     updateHud();
     if (lives <= 0) {
-      showMessage('ゲームオーバー...\nステージをリセットします');
-      reset();
+      gamePaused = false;
+      pausePanelEl.style.display = 'none';
+      showMessage('ゲームオーバー');
+      gameOverMenuActive = true;
+      gameOverPanelEl.style.display = 'flex';
+      input.left = input.right = input.jump = input.attack = false;
+      input.jumpPressed = input.attackPressed = false;
+      stopBossFileBgm();
+      syncPauseOpenButtonVisibility();
+      syncAttackButtonVisual();
       return;
     }
     const point = getHoleRespawnPoint(player.x);
     respawnPlayer(point.x, point.y);
   }
 
+  function isBossStage() {
+    return currentStageId === 'stage4';
+  }
+
+  // ボス木の描画矩形・複数矩形当たり判定・プレイヤー進入禁止左端
+  function getBossArenaLayout() {
+    const iw = bossSheetReady ? BOSS_SHEET.naturalWidth : 1024;
+    const ih = bossSheetReady ? BOSS_SHEET.naturalHeight : 1024;
+    // テクスチャはトリミングせず全幅・全高を使う（drawImage のソース矩形＝自然サイズ）
+    const sw = iw;
+    const sh = ih;
+    // 縦が収まる上限から destW を決め、必要なら縮小して右端が画面内に収まるようにする
+    const destWByH = Math.floor((H - 76) * (sw / sh));
+    const rightPad = 8;
+    const leftPad = 4;
+    let destW = Math.min(328, W - 88, destWByH) + 5 + 30;
+    let destH = destW * (sh / sw);
+    // 右端が画面外に出ないよう幅を抑える（画像を切らない）
+    while (destW > 120 && destW > W - leftPad - rightPad) {
+      destW -= 2;
+      destH = destW * (sh / sw);
+    }
+    // 上方向に約30px拡大：高さを伸ばし、足元（レイアウト下端）の位置は維持
+    const extraUpPx = 30;
+    const destHBase = destH;
+    const dyBase = 398 - destHBase * 0.82 - 5 - 30;
+    const bottomAnchor = dyBase + destHBase;
+    destH += extraUpPx;
+    destW = destH * (sw / sh);
+    while (destW > 120 && destW > W - leftPad - rightPad) {
+      destW -= 2;
+      destH = destW * (sh / sw);
+    }
+    const dxPrefer = W - destW + 28 - 5 - 30 - 40;
+    const dxMax = W - destW - rightPad;
+    let dx = Math.max(leftPad, Math.min(dxPrefer, dxMax));
+    let dy = bottomAnchor - destH;
+    if (dy + destH > H - rightPad) {
+      dy = H - rightPad - destH;
+    }
+    if (dy < 12) {
+      dy = 12;
+    }
+
+    // 上に10px拡大（矩形の下端位置を維持）
+    const growUpPx = 10;
+    const bottomY = dy + destH;
+    destH += growUpPx;
+    destW = destH * (sw / sh);
+    while (destW > 120 && destW > W - leftPad - rightPad) {
+      destW -= 2;
+      destH = destW * (sh / sw);
+    }
+    dy = bottomY - destH;
+    if (dy + destH > H - rightPad) {
+      dy = H - rightPad - destH;
+    }
+    if (dy < 12) {
+      dy = 12;
+    }
+
+    // 下に5px拡大（上端 dy はそのまま、下端だけ伸ばす）
+    const growDownPx = 5;
+    destH += growDownPx;
+    destW = destH * (sw / sh);
+    while (destW > 120 && destW > W - leftPad - rightPad) {
+      destW -= 2;
+      destH = destW * (sh / sw);
+    }
+    if (dy + destH > H - rightPad) {
+      dy = H - rightPad - destH;
+    }
+    if (dy < 12) {
+      dy = 12;
+    }
+
+    // 基準位置から右へ69px（さらに+15）。右端は画面外へはみ出しても可
+    const BOSS_SHIFT_RIGHT_PX = 69;
+    dx = Math.max(leftPad, dx + BOSS_SHIFT_RIGHT_PX);
+
+    // 幹・顔・根元の3矩形（描画先矩形に対する比率。透過外枠は含まない）
+    const ratioRects = [
+      { nx: 0.1, ny: 0.3, nw: 0.32, nh: 0.58 },
+      { nx: 0.36, ny: 0.1, nw: 0.44, nh: 0.42 },
+      { nx: 0.04, ny: 0.52, nw: 0.2, nh: 0.4 }
+    ];
+    const hitRects = ratioRects.map((r) => ({
+      x: dx + destW * r.nx,
+      y: dy + destH * r.ny,
+      w: destW * r.nw,
+      h: destH * r.nh
+    }));
+
+    let minHx = W;
+    for (const r of hitRects) {
+      minHx = Math.min(minHx, r.x);
+    }
+    // 幹より手前で止めすぎない。張り付き対策は強風で左へ戻す
+    const blockLeft = minHx + 36;
+
+    let ux0 = Infinity;
+    let uy0 = Infinity;
+    let ux1 = -Infinity;
+    let uy1 = -Infinity;
+    for (const r of hitRects) {
+      ux0 = Math.min(ux0, r.x);
+      uy0 = Math.min(uy0, r.y);
+      ux1 = Math.max(ux1, r.x + r.w);
+      uy1 = Math.max(uy1, r.y + r.h);
+    }
+    const hitUnion = { x: ux0, y: uy0, w: ux1 - ux0, h: uy1 - uy0 };
+
+    return { dx, dy, destW, destH, sw, sh, hitRects, hitUnion, blockLeft };
+  }
+
+  /** 星弾・しっぽ用：いずれかのダメージ矩形に円が当たるか */
+  function bossDamageHitCircle(cx, cy, cr) {
+    for (const r of getBossArenaLayout().hitRects) {
+      if (rectCircleCollide(r, cx, cy, cr)) return true;
+    }
+    return false;
+  }
+
+  /** しっぽ矩形がいずれかのダメージ矩形と重なるか */
+  function bossDamageHitRect(box) {
+    for (const r of getBossArenaLayout().hitRects) {
+      if (rectRectsOverlap(box, r)) return true;
+    }
+    return false;
+  }
+
+  /** HP半分以下で予備動作時間のみ 1.3 倍速（所要時間は 1/1.3） */
+  function bossWindupDurationScale() {
+    return bossHp <= BOSS_MAX_HP * 0.5 ? 1 / 1.3 : 1;
+  }
+
+  /** HP が 5 以下のときの強化フェーズ（葉3ウェーブ計9枚・枝3波・リンゴ5個） */
+  function bossIsDesperationPhase() {
+    return bossHp <= 5;
+  }
+
+  /** 通常時のリンゴ連続落下の間隔（ms） */
+  const BOSS_APPLE_SPAWN_INTERVAL_MS = 1000;
+  /** 強化時はリンゴ落下間隔をやや短く */
+  function bossAppleSpawnIntervalMs() {
+    return bossIsDesperationPhase() ? 760 : BOSS_APPLE_SPAWN_INTERVAL_MS;
+  }
+
+  /** 葉ウェーブ間のインターバル（ms）：強化時はウェーブ間隔のみ短く（連射間隔は据え置き） */
+  function bossLeafWaveGapActiveMs() {
+    return bossIsDesperationPhase() ? 150 : BOSS_LEAF_WAVE_GAP_MS;
+  }
+
+  function bossAppleSpawnCap() {
+    return bossIsDesperationPhase() ? 5 : 3;
+  }
+
+  /** 枝攻撃の総ウェーブ数（警告→根突き上げを1ウェーブと数える） */
+  function bossBranchWaveCap() {
+    return bossIsDesperationPhase() ? 3 : 2;
+  }
+
+  /** 葉攻撃のウェーブ数（各ウェーブ3枚） */
+  function bossLeafWaveCap() {
+    return bossIsDesperationPhase() ? 3 : 2;
+  }
+
+  // 回復・星アイテムの出現範囲（左壁より右、ボス幹より左）
+  function getBossPickupSpawnBounds() {
+    const lay = getBossArenaLayout();
+    const minX = 48;
+    const maxX = Math.max(minX + 80, lay.blockLeft - 56);
+    return { minX, maxX, minY: 250, maxY: 392 };
+  }
+
+  function initBossArena() {
+    const now = performance.now();
+    bossHp = BOSS_MAX_HP;
+    bossDefeatPhase = 0;
+    bossDefeatUntilMs = 0;
+    bossInvincibleUntilMs = 0;
+    bossNextPatternAtMs = now + 1800 + Math.random() * 1200;
+    bossCombatMode = 'wait';
+    bossCombatUntilMs = 0;
+    bossAppleSpawnsDone = 0;
+    bossNextAppleSpawnAtMs = 0;
+    bossLeafBurstCount = 0;
+    bossLeafBurstNextAtMs = 0;
+    bossLeafWaveAfterGap = 2;
+    bossLastAttackKind = null;
+    bossBranchStep = 0;
+    bossApples = [];
+    bossLeaves = [];
+    bossRoots = [];
+    bossStarPickups = [];
+    bossHealPickup = null;
+    bossTailDamagePending = false;
+    bossNextStarAtMs = now + 1500;
+    bossNextHealAtMs = now + 10000;
+    bossHitParticles = [];
+    bossScreenShakeUntilMs = 0;
+    bossScreenShakeAmp = 0;
+    bossInnerGustAtMs = 0;
+    bossPickupSpawnFx = [];
+    bossDefeatVanishSeMs = 0;
+    bossBranchGroundMarks = [];
+    bossBranchPendingSpawn = null;
+    bossDesperationFxUntilMs = 0;
+    bossDesperationBannerUntilMs = 0;
+  }
+
+  /** 星／回復アイテム出現時のリッチ演出を生成 */
+  function spawnBossPickupSpawnRichFx(cx, cy, mode) {
+    const starGold = mode === 'star';
+    bossPickupSpawnFx.push({
+      kind: 'flash',
+      x: cx,
+      y: cy,
+      t: 0,
+      maxT: 16,
+      starGold
+    });
+    for (let k = 0; k < 3; k++) {
+      bossPickupSpawnFx.push({
+        kind: 'ring',
+        x: cx,
+        y: cy,
+        t: -k * 8,
+        maxT: 44 + k * 10,
+        starGold
+      });
+    }
+    const n = starGold ? 24 : 28;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1.5 + Math.random() * 3.8;
+      bossPickupSpawnFx.push({
+        kind: 'particle',
+        x: cx,
+        y: cy,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - (starGold ? 1.4 : 1.9),
+        life: 1,
+        decay: 0.02 + Math.random() * 0.02,
+        r: 1.4 + Math.random() * 3.2,
+        starGold
+      });
+    }
+    const upCount = starGold ? 10 : 14;
+    for (let j = 0; j < upCount; j++) {
+      bossPickupSpawnFx.push({
+        kind: 'spark',
+        x: cx + (Math.random() - 0.5) * 18,
+        y: cy + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 1.4,
+        vy: -2.4 - Math.random() * 2.2,
+        life: 1,
+        decay: 0.017 + Math.random() * 0.012,
+        r: 1.1 + Math.random() * 2.2,
+        starGold
+      });
+    }
+    if (starGold) {
+      playSe('bossItemStar');
+    } else {
+      playSe('bossItemHeal');
+    }
+  }
+
+  function updateBossPickupSpawnFx(dt) {
+    for (let i = bossPickupSpawnFx.length - 1; i >= 0; i--) {
+      const e = bossPickupSpawnFx[i];
+      if (e.kind === 'ring' || e.kind === 'flash') {
+        e.t += dt;
+        if (e.t > e.maxT) bossPickupSpawnFx.splice(i, 1);
+      } else {
+        e.x += e.vx * dt;
+        e.y += e.vy * dt;
+        e.vy += (e.kind === 'spark' ? 0.06 : 0.11) * dt;
+        e.life -= e.decay * dt;
+        if (e.life <= 0) bossPickupSpawnFx.splice(i, 1);
+      }
+    }
+  }
+
+  function drawBossPickupSpawnFx() {
+    const drawFlash = (e) => {
+      if (e.kind !== 'flash' || e.t < 0) return;
+      const u = e.t / e.maxT;
+      const a = (1 - u) * 0.55;
+      const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 56 + (1 - u) * 40);
+      if (e.starGold) {
+        g.addColorStop(0, `rgba(255, 250, 210, ${a})`);
+        g.addColorStop(0.35, `rgba(255, 220, 120, ${a * 0.55})`);
+        g.addColorStop(1, 'rgba(255, 200, 80, 0)');
+      } else {
+        g.addColorStop(0, `rgba(255, 200, 220, ${a})`);
+        g.addColorStop(0.4, `rgba(255, 130, 160, ${a * 0.5})`);
+        g.addColorStop(1, 'rgba(200, 80, 120, 0)');
+      }
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 96, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    const drawRing = (e) => {
+      if (e.kind !== 'ring' || e.t < 0) return;
+      const u = Math.min(1, e.t / e.maxT);
+      const rad = 10 + u * 58;
+      const a = (1 - u) * (e.starGold ? 0.62 : 0.52);
+      ctx.strokeStyle = e.starGold
+        ? `rgba(255, 230, 140, ${a})`
+        : `rgba(255, 150, 180, ${a})`;
+      ctx.lineWidth = 3.2 - u * 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, rad, 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    for (const e of bossPickupSpawnFx) {
+      if (e.kind === 'flash') drawFlash(e);
+    }
+    for (const e of bossPickupSpawnFx) {
+      if (e.kind === 'ring') drawRing(e);
+    }
+    for (const e of bossPickupSpawnFx) {
+      if (e.kind !== 'particle' && e.kind !== 'spark') continue;
+      const al = Math.max(0, Math.min(1, e.life));
+      ctx.globalAlpha = al * 0.95;
+      if (e.starGold) {
+        ctx.fillStyle = e.kind === 'spark' ? '#FFFDE7' : '#FFE082';
+        ctx.shadowColor = 'rgba(255, 220, 120, 0.9)';
+        ctx.shadowBlur = 6;
+      } else {
+        ctx.fillStyle = e.kind === 'spark' ? '#FCE4EC' : '#F48FB1';
+        ctx.shadowColor = 'rgba(255, 150, 180, 0.75)';
+        ctx.shadowBlur = 8;
+      }
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r * (0.85 + al * 0.15), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** 枝攻撃：地面から出る直前の赤点滅マーカー */
+  function drawBossBranchGroundMarks(nowMs) {
+    for (const m of bossBranchGroundMarks) {
+      if (nowMs >= m.untilMs) continue;
+      const blink = Math.floor(nowMs / 72) % 2 === 0;
+      const cx = m.x + m.w * 0.5;
+      const pulse = 0.85 + 0.15 * Math.sin(nowMs * 0.02 + m.x * 0.05);
+      ctx.fillStyle = blink
+        ? `rgba(240, 50, 50, ${0.52 * pulse})`
+        : `rgba(130, 20, 30, ${0.38 * pulse})`;
+      ctx.beginPath();
+      ctx.ellipse(cx, 419, m.w * 0.55, 9 * pulse, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = blink ? 'rgba(255, 200, 200, 0.65)' : 'rgba(180, 80, 80, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  function spawnRandomInBossArena() {
+    const b = getBossPickupSpawnBounds();
+    return {
+      x: b.minX + Math.random() * (b.maxX - b.minX),
+      y: b.minY + Math.random() * (b.maxY - b.minY)
+    };
+  }
+
+  /** 次の攻撃種別（直前と同じは出さない） */
+  function pickNextBossAttackKind() {
+    const all = ['apple', 'leaf', 'branch'];
+    const pool =
+      bossLastAttackKind == null
+        ? all
+        : all.filter((k) => k !== bossLastAttackKind);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  /** 葉っぱカッター：1枚（プレイヤー狙い・高速）。wave は 1〜3（ウェーブ識別用） */
+  function spawnBossSingleLeaf(wave) {
+    const lay = getBossArenaLayout();
+    const ex = lay.blockLeft - 6;
+    const ey = lay.dy + lay.destH * 0.32;
+    const tx = player.x;
+    const ty = player.y;
+    const baseAng = Math.atan2(ty - ey, tx - ex);
+    const sp = 8.6;
+    const ang = baseAng + (Math.random() - 0.5) * 0.04;
+    bossLeaves.push({
+      x: ex,
+      y: ey,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp,
+      age: 0,
+      maxAge: 200,
+      rot: ang,
+      wobble: Math.random() * Math.PI * 2,
+      leafWave: wave,
+      fastLeaf: true
+    });
+  }
+
+  /** リンゴ：幹付近から下へ転がり落ち、床で左へ転がる */
+  function spawnBossRollingApple() {
+    const lay = getBossArenaLayout();
+    const r = 13 + Math.random() * 2.5;
+    const ex = lay.blockLeft - 2;
+    const ey = lay.dy + lay.destH * 0.3;
+    bossApples.push({
+      x: ex + (Math.random() - 0.5) * 12,
+      y: ey - 8,
+      vx: -0.35 + Math.random() * 0.7,
+      vy: 1.35 + Math.random() * 0.75,
+      r,
+      bounces: 0,
+      roll: true,
+      trunkFall: true
+    });
+  }
+
+  /** 枝3本のパラメータを生成（警告後に spawn する） */
+  function buildBranchWaveSegments() {
+    const b = getBossPickupSpawnBounds();
+    const px = Math.max(b.minX + 8, Math.min(b.maxX - 8, player.x));
+    const xs = [px - 16];
+    for (let k = 0; k < 2; k++) {
+      let cx = b.minX + Math.random() * (b.maxX - b.minX);
+      let guard = 0;
+      while (
+        guard < 14 &&
+        xs.some((zx) => Math.abs(zx - (cx - 16)) < 40 || Math.abs(px - 16 - (cx - 16)) < 40)
+      ) {
+        cx = b.minX + Math.random() * (b.maxX - b.minX);
+        guard++;
+      }
+      xs.push(cx - 16);
+    }
+    const list = [];
+    for (const rx of xs) {
+      list.push({
+        x: rx,
+        w: 30 + Math.floor(Math.random() * 6),
+        maxH: 58 + Math.random() * 36,
+        vy: 16 + Math.random() * 5
+      });
+    }
+    return list;
+  }
+
+  /** 地面の赤点滅マーカーのあと、枝を生やす */
+  function beginBranchAttackWithWarning(nowMs) {
+    const WARN_MS = 420;
+    const list = buildBranchWaveSegments();
+    bossBranchPendingSpawn = { list, spawnAtMs: nowMs + WARN_MS };
+    bossBranchGroundMarks = list.map((s) => ({
+      x: s.x,
+      w: s.w,
+      untilMs: nowMs + WARN_MS
+    }));
+    bossCombatMode = 'branch_warn';
+    bossCombatUntilMs = nowMs + WARN_MS;
+    playSe('bossWuBranchWarn');
+  }
+
+  function executeBranchPendingSpawn() {
+    if (!bossBranchPendingSpawn) return;
+    const list = bossBranchPendingSpawn.list;
+    for (const seg of list) {
+      bossRoots.push({
+        x: seg.x,
+        w: seg.w,
+        h: 0,
+        maxH: seg.maxH,
+        vy: seg.vy,
+        dealt: false,
+        fade: 0,
+        snapFast: true
+      });
+    }
+    bossBranchPendingSpawn = null;
+    bossBranchGroundMarks = [];
+    playSe('bossAtkBranch');
+    triggerBossScreenShake(5.5, 280);
+    bossCombatMode = 'branch';
+    // 根を生やしたウェーブ数（roots が空になったら次ウェーブへ）
+    bossBranchStep++;
+  }
+
+  function triggerBossScreenShake(peakAmp, durationMs) {
+    const n = performance.now();
+    bossScreenShakeUntilMs = n + durationMs;
+    bossScreenShakeStartMs = n;
+    bossScreenShakeAmp = peakAmp;
+  }
+
+  function getBossScreenShakeOffset(nowMs) {
+    if (nowMs >= bossScreenShakeUntilMs || bossScreenShakeAmp <= 0) {
+      return { x: 0, y: 0 };
+    }
+    const dur = bossScreenShakeUntilMs - bossScreenShakeStartMs;
+    const fade = dur > 0 ? (bossScreenShakeUntilMs - nowMs) / dur : 0;
+    const mag = bossScreenShakeAmp * fade;
+    const phase = nowMs * 0.09;
+    return {
+      x: Math.sin(phase) * mag * 0.95,
+      y: Math.cos(phase * 1.31) * mag * 0.88
+    };
+  }
+
+  function spawnBossHitParticles() {
+    const u = getBossArenaLayout().hitUnion;
+    const cx = u.x + u.w * 0.5;
+    const cy = u.y + u.h * 0.32;
+    for (let i = 0; i < 14; i++) {
+      const isSpark = Math.random() > 0.48;
+      bossHitParticles.push({
+        x: cx + (Math.random() - 0.5) * u.w * 0.88,
+        y: cy + (Math.random() - 0.5) * u.h * 0.78,
+        vx: (Math.random() - 0.5) * 7.5,
+        vy: (Math.random() - 0.5) * 7 - 2,
+        life: 1,
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.18,
+        kind: isSpark ? 'spark' : 'leaf'
+      });
+    }
+  }
+
+  /** HP5以下突入時：幹から噴き出すような余燼パーティクル */
+  function spawnBossDesperationBurstParticles() {
+    const u = getBossArenaLayout().hitUnion;
+    const cx = u.x + u.w * 0.5;
+    const cy = u.y + u.h * 0.34;
+    for (let i = 0; i < 48; i++) {
+      const ang = (Math.PI * 2 * i) / 48 + (Math.random() - 0.5) * 0.35;
+      const sp = 3.2 + Math.random() * 10;
+      bossHitParticles.push({
+        x: cx + (Math.random() - 0.5) * u.w * 0.55,
+        y: cy + (Math.random() - 0.5) * u.h * 0.5,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp - 2.2,
+        life: 1.2 + Math.random() * 0.35,
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.28,
+        kind: 'ember'
+      });
+    }
+  }
+
+  function updateBossHitParticles(dt) {
+    const g = 0.14;
+    for (let i = bossHitParticles.length - 1; i >= 0; i--) {
+      const p = bossHitParticles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += g * dt;
+      p.vx *= Math.pow(0.984, dt);
+      p.rot += (p.vr || 0) * dt;
+      // 余燼は少し長く残す
+      const decay = p.kind === 'ember' ? 0.026 : 0.036;
+      p.life -= decay * dt;
+      if (p.life <= 0) bossHitParticles.splice(i, 1);
+    }
+  }
+
+  function drawBossHitParticles() {
+    for (const p of bossHitParticles) {
+      if (p.kind === 'spark') {
+        const a = Math.max(0, Math.min(1, p.life));
+        ctx.globalAlpha = a * 0.95;
+        ctx.fillStyle = `rgba(255, 248, 210, ${0.35 + a * 0.55})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.6 + a * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.kind === 'ember') {
+        const a = Math.max(0, Math.min(1, p.life));
+        ctx.globalAlpha = a * 0.9;
+        const r = 255;
+        const g0 = 80 + (1 - a) * 70;
+        const b0 = 30 + (1 - a) * 20;
+        ctx.fillStyle = `rgba(${r}, ${g0}, ${b0}, ${0.45 + 0.45 * a})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2 + (1 - a) * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life + 0.22));
+        ctx.fillStyle = '#1B5E20';
+        ctx.fillRect(-5, -2, 10, 4);
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(-4, -1.5, 6, 2);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBossArenaBackground() {
+    if (bossArenaBgReady && BOSS_ARENA_BG.naturalWidth > 0) {
+      const iw = BOSS_ARENA_BG.naturalWidth;
+      const ih = BOSS_ARENA_BG.naturalHeight;
+      const scale = Math.max(W / iw, H / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = (W - dw) * 0.5;
+      const dy = (H - dh) * 0.5;
+      ctx.drawImage(BOSS_ARENA_BG, 0, 0, iw, ih, dx, dy, dw, dh);
+    } else {
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#12081f');
+      bg.addColorStop(0.55, '#2a1840');
+      bg.addColorStop(1, '#3d2458');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(40, 24, 60, 0.35)';
+      ctx.fillRect(0, 360, W, 90);
+    }
+  }
+
+  function drawBossProjectileApple(a) {
+    ctx.fillStyle = '#E53935';
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#33691E';
+    ctx.fillRect(a.x - 2, a.y - a.r - 4, 4, 6);
+  }
+
+  function drawBossProjectileLeaf(L) {
+    ctx.save();
+    ctx.translate(L.x, L.y);
+    ctx.rotate(L.rot || 0);
+    ctx.scale(1.2, 1.2);
+    ctx.fillStyle = '#2E7D32';
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.quadraticCurveTo(0, -8, -12, 0);
+    ctx.quadraticCurveTo(0, 8, 10, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBossTreeSprite(nowMs) {
+    const lay = getBossArenaLayout();
+    const cx = lay.dx + lay.destW * 0.5;
+    const baseY = lay.dy + lay.destH;
+    let alpha = 1;
+    let scaleBoss = 1;
+    let sway = 0;
+    let squashY = 1;
+    let redWindup = false;
+    let hurtBlink = false;
+
+    if (bossDefeatPhase === 1) {
+      const u = Math.max(
+        0,
+        Math.min(1, (nowMs - (bossDefeatUntilMs - BOSS_DEFEAT_ANIM_MS)) / BOSS_DEFEAT_ANIM_MS)
+      );
+      const blink = Math.abs(Math.sin(nowMs / 42));
+      alpha = (1 - u) * (0.28 + 0.72 * blink);
+      scaleBoss = 1 - u * 0.22;
+    } else {
+      if (nowMs < bossInvincibleUntilMs) {
+        hurtBlink = Math.floor(nowMs / 100) % 2 === 0;
+      }
+      if (bossCombatMode === 'wu_branch') {
+        redWindup = Math.floor(nowMs / 85) % 2 === 0;
+      } else if (bossCombatMode === 'wu_leaf') {
+        sway = Math.sin(nowMs * 0.017) * 9;
+      } else if (bossCombatMode === 'wu_apple') {
+        squashY = 1 + Math.sin(nowMs * 0.021) * 0.065;
+      }
+    }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx + sway, baseY);
+    ctx.scale(scaleBoss, scaleBoss * squashY);
+    ctx.translate(-cx, -baseY);
+
+    if (bossSheetReady && lay.sw > 0 && lay.sh > 0) {
+      // PNG 全体をソースからそのまま描画（横半分などのトリミングはしない）
+      ctx.drawImage(
+        BOSS_SHEET,
+        0,
+        0,
+        lay.sw,
+        lay.sh,
+        lay.dx,
+        lay.dy,
+        lay.destW,
+        lay.destH
+      );
+      // 点滅は外接矩形ではなく、描画済みピクセル（PNG のアルファ）にだけ重ねる
+      if (hurtBlink) {
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+        ctx.fillRect(lay.dx, lay.dy, lay.destW, lay.destH);
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (redWindup) {
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = 'rgba(210, 55, 55, 0.48)';
+        ctx.fillRect(lay.dx, lay.dy, lay.destW, lay.destH);
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (bossIsDesperationPhase() && bossDefeatPhase === 0) {
+        // 狂暴化中：幹に脈打つ赤み（被弾点滅・枝予備より弱く）
+        ctx.globalCompositeOperation = 'source-atop';
+        const pulse = 0.085 + Math.sin(nowMs * 0.011) * 0.042;
+        ctx.fillStyle = `rgba(120, 18, 14, ${pulse})`;
+        ctx.fillRect(lay.dx, lay.dy, lay.destW, lay.destH);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    } else {
+      ctx.fillStyle = '#5D4037';
+      ctx.fillRect(lay.dx, lay.dy, lay.destW, lay.destH);
+      ctx.fillStyle = '#81C784';
+      ctx.fillRect(lay.dx + lay.destW * 0.1, lay.dy - 40, lay.destW * 0.8, 50);
+      const ov = lay.hitUnion;
+      if (redWindup) {
+        ctx.fillStyle = 'rgba(200, 40, 40, 0.42)';
+        ctx.fillRect(ov.x, ov.y, ov.w, ov.h);
+      }
+      if (hurtBlink) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+        ctx.fillRect(ov.x, ov.y, ov.w, ov.h);
+      } else if (bossIsDesperationPhase() && bossDefeatPhase === 0) {
+        const pulse = 0.14 + Math.sin(nowMs * 0.011) * 0.07;
+        ctx.fillStyle = `rgba(90, 16, 10, ${pulse})`;
+        ctx.fillRect(ov.x, ov.y, ov.w, ov.h);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawBossHpBarScreen() {
+    const barW = 280;
+    const barH = 12;
+    const bx = (W - barW) * 0.5;
+    const by = 10;
+    const ratio = Math.max(0, bossHp / BOSS_MAX_HP);
+
+    // 茨っぽい装飾（バーの上下）
+    ctx.strokeStyle = 'rgba(46, 74, 26, 0.85)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    for (let s = -1; s <= 1; s += 2) {
+      const baseY = s < 0 ? by - 3 : by + barH + 3;
+      ctx.beginPath();
+      ctx.moveTo(bx - 20, baseY);
+      for (let i = 1; i <= 36; i++) {
+        const t = i / 36;
+        const px = bx - 16 + t * (barW + 32);
+        const py = baseY + Math.sin(t * Math.PI * 4.2) * (4.5 * s);
+        ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    for (let i = 0; i < 9; i++) {
+      const tx = bx - 8 + (i / 8) * (barW + 16);
+      const tyTop = by - 2;
+      ctx.fillStyle = 'rgba(27, 94, 32, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(tx, tyTop);
+      ctx.lineTo(tx + 4, tyTop - 7);
+      ctx.lineTo(tx + 8, tyTop);
+      ctx.closePath();
+      ctx.fill();
+      const tyBot = by + barH + 2;
+      ctx.beginPath();
+      ctx.moveTo(tx, tyBot);
+      ctx.lineTo(tx + 4, tyBot + 7);
+      ctx.lineTo(tx + 8, tyBot);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(bx - 3, by - 3, barW + 6, barH + 6);
+    ctx.strokeStyle = 'rgba(139, 195, 74, 0.55)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx - 2.5, by - 2.5, barW + 5, barH + 5);
+    ctx.fillStyle = '#3E2723';
+    ctx.fillRect(bx, by, barW, barH);
+    ctx.fillStyle = ratio > 0.35 ? '#66BB6A' : '#EF5350';
+    ctx.fillRect(bx, by, barW * ratio, barH);
+
+    // 狂暴化中：HP バー外周の脈打つ赤枠
+    if (bossIsDesperationPhase() && bossDefeatPhase === 0) {
+      const throb = 0.5 + Math.sin(performance.now() * 0.008) * 0.45;
+      ctx.strokeStyle = `rgba(200, 45, 38, ${0.5 + throb * 0.42})`;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(bx - 6, by - 6, barW + 12, barH + 12);
+    }
+
+    // ゲージの直下にボス名のみ（数値は出さない）
+    const bossNameLabel = 'トレットン';
+    const nameY = by + barH + 10;
+    ctx.save();
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.62)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(bossNameLabel, W * 0.5, nameY);
+    ctx.fillStyle = 'rgba(248, 252, 232, 0.96)';
+    ctx.fillText(bossNameLabel, W * 0.5, nameY);
+    if (bossIsDesperationPhase() && bossDefeatPhase === 0) {
+      ctx.font = 'bold 10px sans-serif';
+      const subA = 0.72 + Math.sin(performance.now() * 0.009) * 0.22;
+      ctx.strokeStyle = 'rgba(20, 0, 0, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.strokeText('狂暴化 · 攻撃激化', W * 0.5, nameY + 15);
+      ctx.fillStyle = `rgba(255, 185, 160, ${subA})`;
+      ctx.fillText('狂暴化 · 攻撃激化', W * 0.5, nameY + 15);
+    }
+    ctx.restore();
+  }
+
+  /** HP5以下：画面端の赤み・突入フラッシュ・案内バナー */
+  function drawBossDesperationFx(nowMs) {
+    if (!isBossStage() || bossDefeatPhase !== 0 || gameWon) return;
+
+    if (bossIsDesperationPhase()) {
+      const pulse = 0.05 + Math.sin(nowMs * 0.004) * 0.026;
+      const rg = ctx.createRadialGradient(
+        W * 0.5,
+        H * 0.5,
+        Math.min(W, H) * 0.12,
+        W * 0.5,
+        H * 0.5,
+        Math.max(W, H) * 0.72
+      );
+      rg.addColorStop(0, 'rgba(30, 0, 0, 0)');
+      rg.addColorStop(1, `rgba(95, 6, 6, ${pulse})`);
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (nowMs < bossDesperationFxUntilMs) {
+      const t = (bossDesperationFxUntilMs - nowMs) / 860;
+      ctx.fillStyle = `rgba(210, 40, 28, ${0.1 + t * 0.34})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (nowMs < bossDesperationBannerUntilMs) {
+      const bannerDur = 3600;
+      const rem = bossDesperationBannerUntilMs - nowMs;
+      const fadeIn = Math.min(1, (bannerDur - rem) / 420);
+      const fadeOut = rem < 820 ? rem / 820 : 1;
+      const alpha = 0.92 * fadeIn * fadeOut;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const ty = 88;
+      const msg = '根が疼き… 攻撃が激化！';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.lineWidth = 5;
+      ctx.strokeText(msg, W * 0.5, ty);
+      ctx.fillStyle = 'rgba(255, 238, 220, 0.98)';
+      ctx.fillText(msg, W * 0.5, ty);
+      ctx.restore();
+    }
+  }
+
+  function damageBossIfAlive() {
+    const t = performance.now();
+    if (!isBossStage() || bossHp <= 0 || bossDefeatPhase !== 0) return;
+    if (t < bossInvincibleUntilMs) return;
+    bossHp--;
+    bossInvincibleUntilMs = t + 2000;
+    if (bossHp === 5) {
+      bossDesperationFxUntilMs = t + 860;
+      bossDesperationBannerUntilMs = t + 3600;
+      spawnBossDesperationBurstParticles();
+    }
+    spawnBossHitParticles();
+    if (bossHp === 5) {
+      triggerBossScreenShake(8.2, 430);
+    } else {
+      triggerBossScreenShake(3.6, 165);
+    }
+    updateHud();
+    if (bossHp <= 0) {
+      bossHp = 0;
+      bossDefeatPhase = 1;
+      bossDefeatUntilMs = t + BOSS_DEFEAT_ANIM_MS;
+      bossDefeatVanishSeMs = t;
+      bossCombatMode = 'wait';
+      bossBranchStep = 0;
+      bossApples = [];
+      bossLeaves = [];
+      bossRoots = [];
+      bossHitParticles = [];
+      bossPickupSpawnFx = [];
+      bossBranchGroundMarks = [];
+      bossBranchPendingSpawn = null;
+      bossDesperationFxUntilMs = 0;
+      bossDesperationBannerUntilMs = 0;
+      // 敵撃破と同じボイス＋撃破系合成SE（最後の一撃のみ）
+      playSe('enemyDefeat');
+    } else {
+      // 通常ヒット時は撃破音とは別の短い SE
+      playSe('bossTakeDamage');
+    }
+  }
+
+  function updateBossBattle(dt, nowMs) {
+    if (!isBossStage() || gameWon) return;
+    updateBossHitParticles(dt);
+    updateBossPickupSpawnFx(dt);
+
+    if (bossDefeatPhase === 1) {
+      if (nowMs >= bossDefeatUntilMs) {
+        gameWon = true;
+        goalFlagTaken = true;
+        clearTimer = 0;
+        stopBossFileBgm();
+        playSe('fanfare');
+        showMessage('トレットンを撃破！\nゲームクリア！\nおつかれさま');
+        clearActionsEl.style.display = 'block';
+        bossDefeatPhase = 2;
+        updateHud();
+      } else {
+        const defeatT0 = bossDefeatUntilMs - BOSS_DEFEAT_ANIM_MS;
+        if (
+          nowMs >= defeatT0 + 160 &&
+          nowMs - bossDefeatVanishSeMs >= 105
+        ) {
+          bossDefeatVanishSeMs = nowMs;
+          playSe('enemyVanishTick');
+        }
+      }
+      return;
+    }
+
+    if (bossHp <= 0) return;
+
+    // 星アイテム（4秒ごと、フィールド最大2）
+    if (nowMs >= bossNextStarAtMs) {
+      bossNextStarAtMs = nowMs + 4000;
+      let active = 0;
+      for (const s of bossStarPickups) {
+        if (!s.collected) active++;
+      }
+      const b = getBossPickupSpawnBounds();
+      if (b.maxX > b.minX) {
+        while (active < 2) {
+          const p = spawnRandomInBossArena();
+          bossStarPickups.push({ x: p.x, y: p.y, collected: false });
+          spawnBossPickupSpawnRichFx(p.x, p.y, 'star');
+          active++;
+        }
+      }
+    }
+
+    // 回復（10秒ごと・ランダム位置、未回収のときだけ1つ）
+    if (nowMs >= bossNextHealAtMs) {
+      bossNextHealAtMs = nowMs + 10000;
+      if (!bossHealPickup) {
+        const p = spawnRandomInBossArena();
+        bossHealPickup = { x: p.x, y: p.y, collected: false };
+        spawnBossPickupSpawnRichFx(p.x, p.y, 'heal');
+      }
+    }
+
+    const wu = bossWindupDurationScale();
+    // 攻撃状態機械（ランダムループ・直前と同じ技は出さない）
+    if (bossCombatMode === 'wait') {
+      if (nowMs >= bossNextPatternAtMs) {
+        const k = pickNextBossAttackKind();
+        bossLastAttackKind = k;
+        if (k === 'apple') {
+          bossCombatMode = 'wu_apple';
+          bossCombatUntilMs = nowMs + BOSS_WU_APPLE_MS * wu;
+          playSe('bossWuApple');
+        } else if (k === 'leaf') {
+          bossCombatMode = 'wu_leaf';
+          bossCombatUntilMs = nowMs + BOSS_WU_LEAF_MS * wu;
+          playSe('bossWuLeaf');
+        } else {
+          bossCombatMode = 'wu_branch';
+          bossCombatUntilMs = nowMs + BOSS_WU_BRANCH_MS * wu;
+          playSe('bossWuBranch');
+        }
+      }
+    } else if (bossCombatMode === 'wu_apple') {
+      if (nowMs >= bossCombatUntilMs) {
+        bossCombatMode = 'apple';
+        bossAppleSpawnsDone = 0;
+        bossNextAppleSpawnAtMs = nowMs;
+      }
+    } else if (bossCombatMode === 'wu_leaf') {
+      if (nowMs >= bossCombatUntilMs) {
+        bossLeafBurstCount = 0;
+        bossLeafBurstNextAtMs = nowMs;
+        bossCombatMode = 'leaf1';
+      }
+    } else if (bossCombatMode === 'wu_branch') {
+      if (nowMs >= bossCombatUntilMs) {
+        beginBranchAttackWithWarning(nowMs);
+      }
+    } else if (bossCombatMode === 'branch_warn') {
+      if (nowMs >= bossCombatUntilMs && bossBranchPendingSpawn) {
+        executeBranchPendingSpawn();
+      }
+    } else if (bossCombatMode === 'apple') {
+      const appleCap = bossAppleSpawnCap();
+      if (nowMs >= bossNextAppleSpawnAtMs && bossAppleSpawnsDone < appleCap) {
+        spawnBossRollingApple();
+        playSe('bossAtkApple');
+        bossAppleSpawnsDone++;
+        bossNextAppleSpawnAtMs = nowMs + bossAppleSpawnIntervalMs();
+      }
+      if (bossAppleSpawnsDone >= appleCap) {
+        bossCombatMode = 'wait';
+        bossNextPatternAtMs =
+          nowMs +
+          BOSS_PATTERN_COOLDOWN_MIN +
+          Math.random() *
+            (BOSS_PATTERN_COOLDOWN_MAX - BOSS_PATTERN_COOLDOWN_MIN);
+      }
+    } else if (bossCombatMode === 'leaf1') {
+      if (bossLeafBurstCount < 3 && nowMs >= bossLeafBurstNextAtMs) {
+        if (bossLeafBurstCount === 0) {
+          playSe('bossAtkLeaf');
+        }
+        spawnBossSingleLeaf(1);
+        bossLeafBurstCount++;
+        bossLeafBurstNextAtMs = nowMs + BOSS_LEAF_BURST_INTERVAL_MS;
+      }
+      if (
+        bossLeafBurstCount >= 3 &&
+        !bossLeaves.some((L) => L.leafWave === 1)
+      ) {
+        bossLeafWaveAfterGap = 2;
+        bossCombatMode = 'leaf_gap';
+        bossCombatUntilMs = nowMs + bossLeafWaveGapActiveMs();
+      }
+    } else if (bossCombatMode === 'leaf_gap') {
+      if (nowMs >= bossCombatUntilMs) {
+        bossLeafBurstCount = 0;
+        bossLeafBurstNextAtMs = nowMs;
+        bossCombatMode = bossLeafWaveAfterGap === 3 ? 'leaf3' : 'leaf2';
+      }
+    } else if (bossCombatMode === 'leaf2') {
+      if (bossLeafBurstCount < 3 && nowMs >= bossLeafBurstNextAtMs) {
+        if (bossLeafBurstCount === 0) {
+          playSe('bossAtkLeaf');
+        }
+        spawnBossSingleLeaf(2);
+        bossLeafBurstCount++;
+        bossLeafBurstNextAtMs = nowMs + BOSS_LEAF_BURST_INTERVAL_MS;
+      }
+      if (
+        bossLeafBurstCount >= 3 &&
+        !bossLeaves.some((L) => L.leafWave === 2)
+      ) {
+        if (bossLeafWaveCap() >= 3) {
+          bossLeafWaveAfterGap = 3;
+          bossCombatMode = 'leaf_gap';
+          bossCombatUntilMs = nowMs + bossLeafWaveGapActiveMs();
+        } else {
+          bossCombatMode = 'wait';
+          bossNextPatternAtMs =
+            nowMs +
+            BOSS_PATTERN_COOLDOWN_MIN +
+            Math.random() *
+              (BOSS_PATTERN_COOLDOWN_MAX - BOSS_PATTERN_COOLDOWN_MIN);
+        }
+      }
+    } else if (bossCombatMode === 'leaf3') {
+      if (bossLeafBurstCount < 3 && nowMs >= bossLeafBurstNextAtMs) {
+        if (bossLeafBurstCount === 0) {
+          playSe('bossAtkLeaf');
+        }
+        spawnBossSingleLeaf(3);
+        bossLeafBurstCount++;
+        bossLeafBurstNextAtMs = nowMs + BOSS_LEAF_BURST_INTERVAL_MS;
+      }
+      if (
+        bossLeafBurstCount >= 3 &&
+        !bossLeaves.some((L) => L.leafWave === 3)
+      ) {
+        bossCombatMode = 'wait';
+        bossNextPatternAtMs =
+          nowMs +
+          BOSS_PATTERN_COOLDOWN_MIN +
+          Math.random() *
+            (BOSS_PATTERN_COOLDOWN_MAX - BOSS_PATTERN_COOLDOWN_MIN);
+      }
+    } else if (bossCombatMode === 'branch') {
+      if (bossRoots.length === 0) {
+        const branchCap = bossBranchWaveCap();
+        if (bossBranchStep < branchCap) {
+          beginBranchAttackWithWarning(nowMs);
+        } else {
+          bossCombatMode = 'wait';
+          bossBranchStep = 0;
+          bossNextPatternAtMs =
+            nowMs +
+            BOSS_PATTERN_COOLDOWN_MIN +
+            Math.random() *
+              (BOSS_PATTERN_COOLDOWN_MAX - BOSS_PATTERN_COOLDOWN_MIN);
+        }
+      }
+    }
+
+    // リンゴ更新（幹から落下 → 床転がり / 旧フォーマット互換）
+    for (let i = bossApples.length - 1; i >= 0; i--) {
+      const a = bossApples[i];
+      if (a.roll && a.trunkFall) {
+        a.vy += GRAVITY * 1.05 * dt;
+        a.x += a.vx * dt;
+        a.y += a.vy * dt;
+        a.vx *= Math.pow(0.998, dt);
+        if (a.y + a.r >= 419) {
+          a.trunkFall = false;
+          a.y = 420 - a.r;
+          a.vy = 0;
+          a.vx = -4.1 - Math.random() * 1.4;
+        }
+        if (a.x < -50 || a.x > W + 60 || a.y > H + 50) {
+          bossApples.splice(i, 1);
+        }
+      } else if (a.roll) {
+        a.vy += GRAVITY * 0.95 * dt;
+        a.x += a.vx * dt;
+        a.y += a.vy * dt;
+        if (a.y + a.r >= 420) {
+          a.y = 420 - a.r;
+          // 床に下向きで着地したときだけ跳ね返り高さをランダム化（毎フレーム乱数しない）
+          if (a.vy > 0.25) {
+            a.vy = -(4.4 + Math.random() * 6.8);
+            a.bounces++;
+            a.vx *= 0.96;
+          }
+        }
+        if (a.x < -50 || a.x > W + 60 || a.y > H + 50) {
+          bossApples.splice(i, 1);
+        }
+      } else {
+        a.vy += GRAVITY * 1.05 * dt;
+        a.y += a.vy * dt;
+        if (a.y + a.r >= 420) {
+          a.y = 420 - a.r;
+          a.vy = -Math.abs(a.vy) * 0.48;
+          a.bounces++;
+          if (a.bounces >= 3) {
+            bossApples.splice(i, 1);
+            continue;
+          }
+        }
+        if (a.y > H + 40 || a.x < -40 || a.x > W + 40) {
+          bossApples.splice(i, 1);
+        }
+      }
+    }
+
+    // 葉更新
+    for (let i = bossLeaves.length - 1; i >= 0; i--) {
+      const L = bossLeaves[i];
+      L.age += dt;
+      const pm = L.fastLeaf ? 0.032 : 0.08;
+      const perpX = -L.vy * pm * Math.sin(L.age * 0.14 + L.wobble);
+      const perpY = L.vx * pm * Math.sin(L.age * 0.14 + L.wobble);
+      L.x += (L.vx + perpX) * dt;
+      L.y += (L.vy + perpY) * dt;
+      L.rot = Math.atan2(L.vy + perpY, L.vx + perpX);
+      if (L.age > L.maxAge || L.x < -60 || L.x > W + 60 || L.y < -80 || L.y > H + 40) {
+        bossLeaves.splice(i, 1);
+      }
+    }
+
+    // 根更新（下から伸びる）
+    for (let i = bossRoots.length - 1; i >= 0; i--) {
+      const r = bossRoots[i];
+      r.h += r.vy * dt;
+      if (r.h >= r.maxH) {
+        r.h = r.maxH;
+        r.vy = 0;
+      }
+      const topY = 420 - r.h;
+      const rootRect = { x: r.x, y: topY, w: r.w, h: r.h };
+      if (
+        !r.dealt &&
+        r.h > 18 &&
+        rectCircleCollide(rootRect, player.x, player.y, player.r)
+      ) {
+        r.dealt = true;
+        if (!isInvincible()) {
+          playSe('bossHitRoot');
+          // 敵接触時と同じ被ダメージボイス（bossHit* は合成のみのため別途再生）
+          playVoice('enemy');
+          onPlayerDamage(true);
+        }
+      }
+      if (r.h >= r.maxH && r.vy === 0) {
+        r.fade = (r.fade || 0) + dt * (r.snapFast ? 2.8 : 1);
+        const fadeMax = r.snapFast ? 5 : 28;
+        if (r.fade > fadeMax) bossRoots.splice(i, 1);
+      }
+    }
+
+    // ボス弾とプレイヤー（当たった弾は削除）
+    if (!isInvincible()) {
+      for (let i = bossApples.length - 1; i >= 0; i--) {
+        const a = bossApples[i];
+        const dx = player.x - a.x;
+        const dy = player.y - a.y;
+        if (dx * dx + dy * dy < (player.r + a.r) * (player.r + a.r)) {
+          bossApples.splice(i, 1);
+          playSe('bossHitApple');
+          playVoice('enemy');
+          onPlayerDamage(true);
+          break;
+        }
+      }
+      for (let i = bossLeaves.length - 1; i >= 0; i--) {
+        const L = bossLeaves[i];
+        const dx = player.x - L.x;
+        const dy = player.y - L.y;
+        if (dx * dx + dy * dy < (player.r + BOSS_LEAF_HIT_R) * (player.r + BOSS_LEAF_HIT_R)) {
+          bossLeaves.splice(i, 1);
+          playSe('bossHitLeaf');
+          playVoice('enemy');
+          onPlayerDamage(true);
+          break;
+        }
+      }
+    }
+
+    // 星アイテム回収（通常ステージと同じボイス＋SE）
+    for (const s of bossStarPickups) {
+      if (s.collected) continue;
+      const dx = player.x - s.x;
+      const dy = player.y - s.y;
+      if (dx * dx + dy * dy < 32 * 32) {
+        s.collected = true;
+        starAmmo++;
+        playSe('star');
+        updateHud();
+      }
+    }
+
+    if (bossHealPickup && !bossHealPickup.collected) {
+      const dx = player.x - bossHealPickup.x;
+      const dy = player.y - bossHealPickup.y;
+      if (dx * dx + dy * dy < 32 * 32) {
+        bossHealPickup.collected = true;
+        bossHealPickup = null;
+        lives++;
+        playSe('life');
+        updateHud();
+      }
+    }
+  }
+
   function loadStage(stageName) {
+    currentStageId = stageName;
     let data = createStage1();
     if (stageName === 'stage2') data = createStage2();
     if (stageName === 'stage3') data = createStage3();
@@ -1227,9 +3889,26 @@
     oasis = data.oasis ? {...data.oasis} : null;
     ceilingGates = (data.ceilingGates || []).map((g) => ({...g}));
     windZones = (data.windZones || []).map((z) => ({...z}));
-    enemies = data.enemies.map((e) => ({...e, defeated: false}));
-    hammerEnemies = (data.hammerEnemies || []).map((he) => ({...he, defeated: false}));
-    skyDropEnemies = (data.skyDropEnemies || []).map((se) => ({...se, defeated: false}));
+    gameOverMenuActive = false;
+    gameOverPanelEl.style.display = 'none';
+    enemies = data.enemies.map((e) => ({
+      ...e,
+      defeated: false,
+      vanishUntilMs: 0,
+      vanishLastSeMs: 0
+    }));
+    hammerEnemies = (data.hammerEnemies || []).map((he) => ({
+      ...he,
+      defeated: false,
+      vanishUntilMs: 0,
+      vanishLastSeMs: 0
+    }));
+    skyDropEnemies = (data.skyDropEnemies || []).map((se) => ({
+      ...se,
+      defeated: false,
+      vanishUntilMs: 0,
+      vanishLastSeMs: 0
+    }));
     skyDrops = [];
     hazards = (data.hazards || []).map((h) => ({...h}));
     lifeItem = data.lifeItem ? {...data.lifeItem} : null;
@@ -1238,17 +3917,30 @@
     currentStageName =
       stageName === 'stage2' ? 'ステージ2' :
       stageName === 'stage3' ? 'ステージ3' :
-      stageName === 'stage4' ? 'ステージ4' : 'ステージ1';
-    audio.bgmVariant = stageName === 'stage2' ? 'stage2' : (stageName === 'stage3' ? 'desert' : 'stage1');
+      stageName === 'stage4' ? 'ステージ4・ボス' : 'ステージ1';
+    audio.bgmVariant =
+      stageName === 'stage2' ? 'stage2' :
+      stageName === 'stage3' ? 'desert' :
+      stageName === 'stage4' ? 'boss' :
+      'stage1';
     restartBgmIfRunning();
     updateStatusLabel();
     reset();
+    // ステージ選択はユーザージェスチャー内なので、この瞬間に AudioContext を起動（rAF 内の予備SEが無音になるのを防ぐ）
+    ensureAudioContext();
   }
 
   function startGame(stageName) {
+    gamePaused = false;
+    pausePanelEl.style.display = 'none';
+    gameOverMenuActive = false;
+    gameOverPanelEl.style.display = 'none';
+    // loadStage で bgmVariant と BGM タイマーを先に確定させてから resume（旧 variant での二重 schedule を防ぐ）
     loadStage(stageName);
+    resumeGameplayAudio();
     gameStarted = true;
     stageSelectEl.style.display = 'none';
+    syncPauseOpenButtonVisibility();
   }
 
   stage1Btn.addEventListener('click', () => startGame('stage1'));
@@ -1259,12 +3951,38 @@
   charLunamonBtn.addEventListener('click', () => setPlayerSkin('lunamon'));
   updateCharacterButtons();
   backStageSelectBtn.addEventListener('click', () => {
-    gameStarted = false;
-    currentStageName = '';
-    updateStatusLabel();
-    stageSelectEl.style.display = 'flex';
+    returnToStageSelectScreen();
+  });
+
+  pauseOpenBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openPauseMenu();
+  });
+  pauseResumeBtn.addEventListener('click', () => {
+    closePauseResumeGame();
+  });
+  pauseStageBtn.addEventListener('click', () => {
+    if (!gamePaused) return;
+    returnToStageSelectScreen();
+  });
+
+  gameOverRetryBtn.addEventListener('click', () => {
+    if (!gameOverMenuActive) return;
+    gameOverMenuActive = false;
+    gameOverPanelEl.style.display = 'none';
     messageEl.style.display = 'none';
-    clearActionsEl.style.display = 'none';
+    reset();
+    // ゲームオーバーで stopBossFileBgm 済みのため、bgmStarted は true のまま → startBgmIfNeeded は動かない。
+    // 確実に BGM を張り直す（プロシージャル／ボス MP3 両方）
+    ensureAudioContext();
+    restartBgmIfRunning();
+    syncPauseOpenButtonVisibility();
+  });
+
+  gameOverStageBtn.addEventListener('click', () => {
+    if (!gameOverMenuActive) return;
+    messageEl.style.display = 'none';
+    returnToStageSelectScreen();
   });
 
   function showMessage(text) {
@@ -1379,12 +4097,15 @@
 
   // ルナモンしっぽ：短時間ヒットボックスで敵を撃破
   function applyLunamonTailHits(nowMs) {
-    if (playerSkin !== 'lunamon' || gameWon || nowMs >= tailSwipeUntilMs) return;
+    // 「終了時刻ちょうど」のフレームも判定する（>= だとその1フレームが抜けてボス被弾SEが鳴らないことがある）
+    if (playerSkin !== 'lunamon' || gameWon || nowMs > tailSwipeUntilMs) return;
     const box = getLunamonTailHitbox();
     for (const e of enemies) {
       if (e.defeated) continue;
       if (rectRectsOverlap(box, e)) {
         e.defeated = true;
+        e.vanishUntilMs = nowMs + 520;
+        e.vanishLastSeMs = nowMs;
         playSe('enemyDefeat');
       }
     }
@@ -1392,6 +4113,8 @@
       if (he.defeated) continue;
       if (rectRectsOverlap(box, he)) {
         he.defeated = true;
+        he.vanishUntilMs = nowMs + 520;
+        he.vanishLastSeMs = nowMs;
         playSe('enemyDefeat');
       }
     }
@@ -1399,7 +4122,22 @@
       if (se.defeated) continue;
       if (rectRectsOverlap(box, se)) {
         se.defeated = true;
+        se.vanishUntilMs = nowMs + 520;
+        se.vanishLastSeMs = nowMs;
         playSe('enemyDefeat');
+      }
+    }
+    if (
+      isBossStage() &&
+      bossDefeatPhase === 0 &&
+      bossHp > 0 &&
+      bossTailDamagePending
+    ) {
+      if (bossDamageHitRect(box)) {
+        if (nowMs >= bossInvincibleUntilMs) {
+          damageBossIfAlive();
+        }
+        bossTailDamagePending = false;
       }
     }
   }
@@ -1449,17 +4187,35 @@
     }
   }
 
+  /** 撃破後の点滅中、消滅 SE を間欠再生 */
+  function tickEnemyVanishSeSounds(list, nowMs) {
+    for (const ent of list) {
+      if (!ent.defeated || !ent.vanishUntilMs || nowMs >= ent.vanishUntilMs) continue;
+      if (nowMs - ent.vanishLastSeMs >= 88) {
+        ent.vanishLastSeMs = nowMs;
+        playSe('enemyVanishTick');
+      }
+    }
+  }
+
   // ============================================
   // ゲームループ: 更新
   // ============================================
   function update(dt = 1) {
     if (!gameStarted) return;
+    if (gameOverMenuActive) return;
+    // クリア演出タイマーはポーズ中も進める（旗の揺れなど）
     if (gameWon) {
       clearTimer += dt;
+      syncAttackButtonVisual();
       return;
     }
+    if (gamePaused) return;
 
     const nowMs = performance.now();
+    tickEnemyVanishSeSounds(enemies, nowMs);
+    tickEnemyVanishSeSounds(hammerEnemies, nowMs);
+    tickEnemyVanishSeSounds(skyDropEnemies, nowMs);
 
     // ステージ3ギミック更新（流砂/崩れ）
     for (const p of platforms) {
@@ -1589,7 +4345,8 @@
           playVoice('attack');
           tailSwipeUntilMs = nowMs + LUNAMON_TAIL_SWIPE_MS;
           tailAttackCooldownUntilMs = nowMs + LUNAMON_TAIL_COOLDOWN_MS;
-          playSe('tailSwipe');
+          if (isBossStage()) bossTailDamagePending = true;
+          if (!isBossStage()) playSe('tailSwipe');
           updateHud();
         }
       } else if (starAmmo > 0) {
@@ -1629,6 +4386,8 @@
         const dy = shot.y - (e.y + e.h * 0.5);
         if (dx * dx + dy * dy < (shot.r + 16) * (shot.r + 16)) {
           e.defeated = true;
+          e.vanishUntilMs = nowMs + 520;
+          e.vanishLastSeMs = nowMs;
           playSe('enemyDefeat');
           hit = true;
           break;
@@ -1641,6 +4400,8 @@
           const dy = shot.y - (he.y + he.h * 0.5);
           if (dx * dx + dy * dy < (shot.r + 17) * (shot.r + 17)) {
             he.defeated = true;
+            he.vanishUntilMs = nowMs + 520;
+            he.vanishLastSeMs = nowMs;
             playSe('enemyDefeat');
             hit = true;
             break;
@@ -1654,9 +4415,28 @@
           const dy = shot.y - (se.y + se.h * 0.5);
           if (dx * dx + dy * dy < (shot.r + 17) * (shot.r + 17)) {
             se.defeated = true;
+            se.vanishUntilMs = nowMs + 520;
+            se.vanishLastSeMs = nowMs;
             playSe('enemyDefeat');
             hit = true;
             break;
+          }
+        }
+      }
+      if (
+        !hit &&
+        isBossStage() &&
+        bossDefeatPhase === 0 &&
+        bossHp > 0
+      ) {
+        if (bossDamageHitCircle(shot.x, shot.y, shot.r)) {
+          // 無敵中はダメージなしで星弾のみ消す（弾かれた音）
+          if (nowMs < bossInvincibleUntilMs) {
+            playSe('bossStarClang');
+            hit = true;
+          } else {
+            damageBossIfAlive();
+            hit = true;
           }
         }
       }
@@ -1722,6 +4502,34 @@
       player.x = worldWidth - player.r;
       if (player.vx > 0) player.vx = 0;
     }
+    // ボス幹の左側へは回り込めない（プレイヤーのみ）
+    if (isBossStage()) {
+      const layBlock = getBossArenaLayout().blockLeft;
+      if (player.x + player.r > layBlock - 1) {
+        player.x = layBlock - player.r - 1;
+        if (player.vx > 0) player.vx = 0;
+      }
+      // 幹前に張り付いている間は 4 秒ごとに強風で左端付近へ押し戻す（ダメージなし・SEあり）
+      const hugging =
+        bossHp > 0 &&
+        bossDefeatPhase === 0 &&
+        !gameWon &&
+        player.x + player.r >= layBlock - 12;
+      if (hugging) {
+        if (bossInnerGustAtMs <= 0) {
+          bossInnerGustAtMs = nowMs + 4000;
+        } else if (nowMs >= bossInnerGustAtMs) {
+          const leftTargetX = 58 + player.r;
+          player.x = leftTargetX;
+          player.vx = -6.5;
+          bossInnerGustAtMs = nowMs + 4000;
+          triggerBossScreenShake(6.2, 320);
+          playSe('bossGustWind');
+        }
+      } else {
+        bossInnerGustAtMs = 0;
+      }
+    }
 
     for (const p of [...platforms, ...ceilingGates]) {
       if (p.disabled) continue;
@@ -1761,6 +4569,12 @@
 
     // ルナモン：しっぽ攻撃の当たり判定（移動・衝突解決後の位置で判定）
     applyLunamonTailHits(nowMs);
+    if (isBossStage() && playerSkin === 'lunamon' && nowMs >= tailSwipeUntilMs) {
+      bossTailDamagePending = false;
+    }
+
+    // ステージ4：ボス弾・出現物・撃破タイマー
+    updateBossBattle(dt, nowMs);
 
     // 画面外に落ちたらリセット
     if (player.y > H + 100) {
@@ -1840,12 +4654,15 @@
       }
     }
 
-    // ゴール判定
-    if (collected === stars.length &&
-        player.x + player.r > goal.x &&
-        player.x - player.r < goal.x + goal.w &&
-        player.y + player.r > goal.y &&
-        player.y - player.r < goal.y + goal.h) {
+    // ゴール判定（ボス戦ステージでは無効）
+    if (
+      !isBossStage() &&
+      collected === stars.length &&
+      player.x + player.r > goal.x &&
+      player.x - player.r < goal.x + goal.w &&
+      player.y + player.r > goal.y &&
+      player.y - player.r < goal.y + goal.h
+    ) {
       gameWon = true;
       goalFlagTaken = true;
       clearTimer = 0;
@@ -1854,10 +4671,14 @@
       clearActionsEl.style.display = 'block';
     }
 
-    // カメラ追従（遅延スムージング）
-    const targetCamX = player.x - W / 2;
-    camX += (targetCamX - camX) * (1 - Math.pow(0.9, dt));
-    camX = Math.max(0, Math.min(camX, worldWidth - W));
+    // カメラ追従（ボスアリーナは固定）
+    if (!isBossStage()) {
+      const targetCamX = player.x - W / 2;
+      camX += (targetCamX - camX) * (1 - Math.pow(0.9, dt));
+      camX = Math.max(0, Math.min(camX, worldWidth - W));
+    } else {
+      camX = 0;
+    }
 
     // 砂漠専用の環境演出
     if (stageTheme === 'desert') {
@@ -1872,9 +4693,9 @@
       }
     }
 
-    // ルナモン：しっぽクールダウン表示を毎フレーム更新（OK表示のタイミング用）
-    if (playerSkin === 'lunamon' && gameStarted && !gameWon) {
-      updateHud();
+    // アタックボタン（しっぽの残り秒など）を毎フレーム同期
+    if (gameStarted && !gameOverMenuActive && !gameWon) {
+      syncAttackButtonVisual();
     }
 
     // まばたき
@@ -2284,6 +5105,12 @@
   }
 
   function drawEnemy(e) {
+    const nowMs = performance.now();
+    if (e.defeated) {
+      if (!e.vanishUntilMs || nowMs >= e.vanishUntilMs) return;
+      ctx.save();
+      ctx.globalAlpha = 0.14 + 0.86 * Math.abs(Math.sin(nowMs / 40));
+    }
     const cx = e.x + e.w / 2;
     const top = e.y;
     const base = e.y + e.h;
@@ -2315,9 +5142,16 @@
     ctx.arc(cx - 7, base - 8, 1.6, 0, Math.PI * 2);
     ctx.arc(cx + 7, base - 8, 1.6, 0, Math.PI * 2);
     ctx.fill();
+    if (e.defeated) ctx.restore();
   }
 
   function drawHammerEnemy(he) {
+    const nowMs = performance.now();
+    if (he.defeated) {
+      if (!he.vanishUntilMs || nowMs >= he.vanishUntilMs) return;
+      ctx.save();
+      ctx.globalAlpha = 0.14 + 0.86 * Math.abs(Math.sin(nowMs / 40));
+    }
     const cx = he.x + he.w / 2;
     const cy = he.y + he.h / 2;
     ctx.fillStyle = '#6B4B2A';
@@ -2353,6 +5187,7 @@
     ctx.beginPath();
     ctx.roundRect(handX + he.dir * 8 - 5, handY - 12, 10, 8, 2);
     ctx.fill();
+    if (he.defeated) ctx.restore();
   }
 
   function drawHammerProjectile(hm) {
@@ -2373,6 +5208,12 @@
   }
 
   function drawSkyDropEnemy(se) {
+    const nowMs = performance.now();
+    if (se.defeated) {
+      if (!se.vanishUntilMs || nowMs >= se.vanishUntilMs) return;
+      ctx.save();
+      ctx.globalAlpha = 0.14 + 0.86 * Math.abs(Math.sin(nowMs / 40));
+    }
     const cx = se.x + se.w / 2;
     const cy = se.y + se.h / 2;
     ctx.fillStyle = '#C9A26B';
@@ -2400,6 +5241,7 @@
     ctx.beginPath();
     ctx.arc(cx, se.y + se.h - 6, 2.2, 0, Math.PI * 2);
     ctx.fill();
+    if (se.defeated) ctx.restore();
   }
 
   function drawSkyDrop(d) {
@@ -2473,8 +5315,22 @@
   function draw() {
     // 描画・BGM と同じ基準（loadStage で theme / bgmVariant が同期される）
     const isDesertStage = stageTheme === 'desert';
+    const isBossArena = stageTheme === 'boss';
+    const nowDrawMs = performance.now();
+    const bossShake = isBossStage()
+      ? getBossScreenShakeOffset(nowDrawMs)
+      : { x: 0, y: 0 };
 
-    if (isDesertStage) {
+    if (isBossStage()) {
+      ctx.save();
+      ctx.translate(bossShake.x, bossShake.y);
+      ctx.fillStyle = '#050308';
+      ctx.fillRect(-48, -48, W + 96, H + 96);
+    }
+
+    if (isBossArena) {
+      drawBossArenaBackground();
+    } else if (isDesertStage) {
       if (desertBgReady) {
         // レイヤー分割はせず、背景1枚をそのまま表示
         drawTiledBackground(DESERT_BG, 0.12);
@@ -2548,10 +5404,14 @@
     for (const p of platforms) {
       if (p.disabled) continue;
       if (p.y >= 420) {
-        // 地面：砂漠は砂色、通常は芝＋土
-        ctx.fillStyle = isDesertStage ? '#F4D03F' : '#7AB84D';
+        // 地面：砂漠は砂色、ボスアリーナは土、通常は芝＋土
+        ctx.fillStyle = isDesertStage
+          ? '#F4D03F'
+          : (isBossArena ? 'rgba(62, 39, 35, 0.78)' : '#7AB84D');
         ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = isDesertStage ? '#D4AC0D' : '#8B6F47';
+        ctx.fillStyle = isDesertStage
+          ? '#D4AC0D'
+          : (isBossArena ? 'rgba(46, 32, 30, 0.82)' : '#8B6F47');
         ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
         if (isDesertStage) {
           // 砂の質感（ドット/かすれ線）
@@ -2613,6 +5473,36 @@
       if (hz.kind === 'cactus') drawCactus(hz);
     }
 
+    // ボス：木本体・根・弾・アイテム（クリア後はボス絵は描かず消えたまま）
+    if (isBossArena) {
+      if (!gameWon) {
+        drawBossTreeSprite(performance.now());
+      }
+      drawBossHitParticles();
+      drawBossBranchGroundMarks(performance.now());
+      for (const r of bossRoots) {
+        const top = 420 - r.h;
+        ctx.fillStyle = 'rgba(62, 39, 35, 0.92)';
+        ctx.fillRect(r.x, top, r.w, r.h);
+        ctx.strokeStyle = 'rgba(40, 25, 20, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x, top, r.w, r.h);
+      }
+      for (const a of bossApples) {
+        drawBossProjectileApple(a);
+      }
+      for (const L of bossLeaves) {
+        drawBossProjectileLeaf(L);
+      }
+      drawBossPickupSpawnFx();
+      for (const s of bossStarPickups) {
+        if (!s.collected) drawStar(s.x, s.y);
+      }
+      if (bossHealPickup && !bossHealPickup.collected) {
+        drawLifeItem(bossHealPickup.x, bossHealPickup.y);
+      }
+    }
+
     // オアシス（水）
     if (oasis) {
       // 左右の縁（土手）を置いて、水が溜まる見た目にする
@@ -2635,25 +5525,27 @@
       }
     }
 
-    // ゴール旗（取得後ははためき＋キラキラ演出）
-    ctx.fillStyle = '#654321';
-    ctx.fillRect(goal.x + 18, goal.y - 20, 3, 60);
-    const flagOffset = goalFlagTaken ? 10 + Math.sin(clearTimer / 8) * 3 : 0;
-    ctx.fillStyle = collected === stars.length ? '#FF4444' : '#AAAAAA';
-    ctx.beginPath();
-    ctx.moveTo(goal.x + 21, goal.y - 20 + flagOffset);
-    ctx.lineTo(goal.x + 45 + (goalFlagTaken ? 3 : 0), goal.y - 12 + flagOffset);
-    ctx.lineTo(goal.x + 21, goal.y - 4 + flagOffset);
-    ctx.closePath();
-    ctx.fill();
-    if (goalFlagTaken) {
-      ctx.fillStyle = 'rgba(255, 235, 120, 0.85)';
-      for (let i = 0; i < 8; i++) {
-        const a = (Math.PI * 2 * i) / 8 + clearTimer * 0.08;
-        const r = 12 + (i % 2) * 6;
-        ctx.beginPath();
-        ctx.arc(goal.x + 23 + Math.cos(a) * r, goal.y - 12 + Math.sin(a) * r, 2.2, 0, Math.PI * 2);
-        ctx.fill();
+    // ゴール旗（ボス戦では非表示）
+    if (!isBossArena) {
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(goal.x + 18, goal.y - 20, 3, 60);
+      const flagOffset = goalFlagTaken ? 10 + Math.sin(clearTimer / 8) * 3 : 0;
+      ctx.fillStyle = collected === stars.length ? '#FF4444' : '#AAAAAA';
+      ctx.beginPath();
+      ctx.moveTo(goal.x + 21, goal.y - 20 + flagOffset);
+      ctx.lineTo(goal.x + 45 + (goalFlagTaken ? 3 : 0), goal.y - 12 + flagOffset);
+      ctx.lineTo(goal.x + 21, goal.y - 4 + flagOffset);
+      ctx.closePath();
+      ctx.fill();
+      if (goalFlagTaken) {
+        ctx.fillStyle = 'rgba(255, 235, 120, 0.85)';
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI * 2 * i) / 8 + clearTimer * 0.08;
+          const r = 12 + (i % 2) * 6;
+          ctx.beginPath();
+          ctx.arc(goal.x + 23 + Math.cos(a) * r, goal.y - 12 + Math.sin(a) * r, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
 
@@ -2663,17 +5555,18 @@
     }
     if (lifeItem && !lifeItem.collected) drawLifeItem(lifeItem.x, lifeItem.y);
 
-    // 敵
+    // 敵（撃破後は点滅消滅の間だけ描画）
+    const drawT = performance.now();
     for (const e of enemies) {
-      if (e.defeated) continue;
+      if (e.defeated && (!e.vanishUntilMs || drawT >= e.vanishUntilMs)) continue;
       drawEnemy(e);
     }
     for (const he of hammerEnemies) {
-      if (he.defeated) continue;
+      if (he.defeated && (!he.vanishUntilMs || drawT >= he.vanishUntilMs)) continue;
       drawHammerEnemy(he);
     }
     for (const se of skyDropEnemies) {
-      if (se.defeated) continue;
+      if (se.defeated && (!se.vanishUntilMs || drawT >= se.vanishUntilMs)) continue;
       drawSkyDropEnemy(se);
     }
     for (const hm of hammers) {
@@ -2707,19 +5600,41 @@
     }
 
     ctx.restore();
+
+    if (isBossArena && gameStarted && !gameWon) {
+      drawBossHpBarScreen();
+      drawBossDesperationFx(nowDrawMs);
+    }
+
+    if (isBossStage()) {
+      ctx.restore();
+    }
   }
 
   // ============================================
   // メインループ
   // ============================================
   let lastFrameTimeMs = performance.now();
+
+  /** ボスとどめ後〜撃破演出中のスローモーション倍率（1＝通常） */
+  function getCoupDeGraceSlowMultiplier(tMs) {
+    if (!isBossStage() || bossDefeatPhase !== 1 || tMs >= bossDefeatUntilMs) {
+      return 1;
+    }
+    const defeatT0 = bossDefeatUntilMs - BOSS_DEFEAT_ANIM_MS;
+    const elapsed = tMs - defeatT0;
+    if (elapsed < 900) return 0.2;
+    return 0.52;
+  }
+
   function loop(nowMs = performance.now()) {
     const rawDt = (nowMs - lastFrameTimeMs) / (1000 / 60);
     // タブ復帰時などの極端なスパイクを防ぐ
     const dt = Math.min(Math.max(rawDt, 0.5), 2.0);
     lastFrameTimeMs = nowMs;
 
-    update(dt);
+    const slowMul = getCoupDeGraceSlowMultiplier(nowMs);
+    update(dt * slowMul);
     draw();
     requestAnimationFrame(loop);
   }
